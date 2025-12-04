@@ -3,19 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
-        "postinstall": "prisma generate",
+    "postinstall": "prisma generate",
     "start": "node .next/standalone/server.js",
     "lint": "next lint",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "npx prisma db push --force-reset && npm run db:seed"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "dependencies": {
-    "@prisma/client": "^6.14.0",
     "axios": "^1.11.0",
     "cloudinary": "^2.7.0",
     "cloudinary-core": "^2.14.0",
@@ -23,20 +19,20 @@
     "jsonwebtoken": "^9.0.2",
     "next": "^14.2.32",
     "openai": "^5.20.2",
-    "prisma": "^6.14.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@prisma/client": "^7.1.0",
     "@tailwindcss/postcss": "^4",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
     "@types/react": "^18.3.24",
     "@types/react-dom": "^18.3.7",
     "eslint": "^9",
-    "eslint-config-next": "15.4.6",
-    "prisma": "^6.14.0",
+    "eslint-config-next": "^14.2.32",
+    "prisma": "^7.1.0",
     "tailwindcss": "^4",
     "typescript": "5.9.2"
   }
