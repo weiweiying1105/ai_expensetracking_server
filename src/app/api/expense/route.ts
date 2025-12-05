@@ -4,14 +4,12 @@ import { quickAnalyzeExpense } from "@/utils/expense-patterns";
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import { OpenAI } from "openai";
-import { PrismaClient } from "@/generated/prisma";
+import prisma from "@/lib/prisma";
 
 const client = new OpenAI({
     apiKey: process.env.DEEPSEEK_API_KEY,
     baseURL: "https://api.deepseek.com",
 });
-
-const prisma = new PrismaClient();
 
 // 分析支出数量（单项还是多项）
 function analyzeExpenseCount(rawText: string) {
@@ -209,6 +207,10 @@ ${categoriesText}
 // 最主要的接口，接收到内容，分析后返回结果
 export async function POST(request: NextRequest) {
     try {
+        // 性能监控：记录开始时间
+        const startTime = performance.now();
+        const performanceData: { [key: string]: number } = {};
+
         const user = await verifyToken(request);
         if (!user) {
             return NextResponse.json(
@@ -236,12 +238,18 @@ export async function POST(request: NextRequest) {
         }
 
         // 获取可用分类
+        const categoriesStartTime = performance.now();
         const availableCategories = await prisma.category.findMany({
             where: {
                 type: 'EXPENSE'
             },
-            orderBy: { sortOrder: 'asc' }
+            select: {
+                id: true,      // 只返回需要的字段
+                name: true,    // 分类名称
+                icon: true     // 分类图标
+            }
         });
+        performanceData['database_categories'] = performance.now() - categoriesStartTime;
         console.log('支出分类', availableCategories);
 
         // 检查是否为多项支出
@@ -249,7 +257,9 @@ export async function POST(request: NextRequest) {
 
         if (expenseCount.isMultiple) {
             // 处理多项支出
+            const aiMultiStartTime = performance.now();
             const multiAnalysis = await analyzeMultipleExpenses(rawText, availableCategories);
+            performanceData['ai_multiple_analysis'] = performance.now() - aiMultiStartTime;
 
             if (!multiAnalysis.success || !multiAnalysis.data?.expenses) {
                 return NextResponse.json(
@@ -260,8 +270,10 @@ export async function POST(request: NextRequest) {
 
             // 创建多个支出记录
             const createdExpenses = [];
+            const dbCreateTotalStartTime = performance.now();
 
             for (const expenseData of multiAnalysis.data.expenses) {
+                
                 const { amount, description, categoryId: analyzedCategoryId, confidence, tags, merchant, reasoning, isExpense } = expenseData;
 
                 // 验证是否为支出
@@ -355,7 +367,15 @@ export async function POST(request: NextRequest) {
                             createdAt: new Date()
                         },
                         include: {
-                            category: true
+                            category: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    icon: true,
+                                    type: true,
+                                    sortOrder: true
+                                }
+                            }
                         }
                     });
 
@@ -366,12 +386,19 @@ export async function POST(request: NextRequest) {
                 }
             }
 
+            // 记录多项支出创建总时间
+            performanceData['database_create_multiple'] = performance.now() - dbCreateTotalStartTime;
+
             if (createdExpenses.length === 0) {
                 return NextResponse.json(
                     ResponseUtil.error('没有成功创建任何支出记录'),
                     { status: 400 }
                 );
             }
+
+            // 记录总执行时间
+            performanceData['total'] = performance.now() - startTime;
+            console.log('性能监控数据(多项支出):', JSON.stringify(performanceData, null, 2));
 
             return NextResponse.json(
                 ResponseUtil.success({
@@ -382,18 +409,23 @@ export async function POST(request: NextRequest) {
                         isMultiple: true,
                         originalText: rawText,
                         usage: multiAnalysis.usage
-                    }
+                    },
+                    performance: performanceData
                 })
             );
         }
 
         // 处理单项支出
+        const quickMatchStartTime = performance.now();
         let analysis = quickAnalyzeExpense(rawText, availableCategories);
+        performanceData['quick_match'] = performance.now() - quickMatchStartTime;
 
         // 如果快速匹配失败，使用AI分析
         if (!analysis.success) {
             console.log('快速匹配失败，使用AI分析');
+            const aiSingleStartTime = performance.now();
             analysis = await analyzeExpenseWithAI(rawText, availableCategories);
+            performanceData['ai_single_analysis'] = performance.now() - aiSingleStartTime;
 
             if (!analysis.success) {
                 return NextResponse.json(
@@ -432,6 +464,9 @@ export async function POST(request: NextRequest) {
 
         // 使用用户指定的分类或分析推荐的分类（来自正则匹配或AI）
         let finalCategoryId = categoryId || analyzedCategoryId;
+        // 初始化分类名称和图标变量
+        let categoryName = '其他';
+        let categoryIcon = '📝';
 
         // 验证分类是否存在，如果不存在则创建新分类
         if (finalCategoryId) {
@@ -441,16 +476,14 @@ export async function POST(request: NextRequest) {
                 if (!categoryId && analyzedCategoryId) {
                     try {
                         // 根据AI分析的描述和标签推断分类名称
-                        let categoryName = '其他';
-                        let categoryIcon = '📝';
 
                         // 根据标签或描述推断分类
                         if (tags && tags.length > 0) {
                             const tag = tags[0].toLowerCase();
-                            if (tag.includes('餐') || tag.includes('食') || tag.includes('饮')) {
+                            if (tag.includes('餐') || tag.includes('食') || tag.includes('饮')|| tag.includes('饭')) {
                                 categoryName = '餐饮';
                                 categoryIcon = '🍽️';
-                            } else if (tag.includes('交通') || tag.includes('车') || tag.includes('地铁')) {
+                            } else if (tag.includes('交通') || tag.includes('车') || tag.includes('地铁')|| tag.includes('公交')) {
                                 categoryName = '交通';
                                 categoryIcon = '🚗';
                             } else if (tag.includes('购物') || tag.includes('买') || tag.includes('超市')) {
@@ -471,18 +504,6 @@ export async function POST(request: NextRequest) {
                         const existingCategory = availableCategories.find(c => c.name === categoryName);
                         if (existingCategory) {
                             finalCategoryId = existingCategory.id;
-                        } else {
-                            // 创建新分类
-                            const newCategory = await prisma.category.create({
-                                data: {
-                                    name: categoryName,
-                                    icon: categoryIcon,
-                                    type: 'EXPENSE',
-                                    sortOrder: availableCategories.length + 1
-                                }
-                            });
-                            finalCategoryId = newCategory.id;
-                            console.log(`创建新分类: ${categoryName} (${newCategory.id})`);
                         }
                     } catch (error) {
                         console.error('创建新分类失败:', error);
@@ -498,26 +519,61 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // 创建支出记录
-        const expense = await prisma.expense.create({
-            data: {
-                amount: amount,
-                description: description || rawText,
-                categoryId: finalCategoryId,
-                date: date ? new Date(date) : new Date(),
-                userId: user.userId,
-                // AI分析相关字段
-                rawText: rawText,
-                aiConfidence: confidence,
-                aiTags: tags ? tags.join(',') : null,
-                aiMerchant: merchant,
-                aiReasoning: reasoning,
-                aiUsage: JSON.stringify((analysis as any).usage || null)
-            },
-            include: {
-                category: true
+        // 使用事务批量处理分类创建和支出创建
+        const dbCreateStartTime = performance.now();
+        const expense = await prisma.$transaction(async (prisma) => {
+            let categoryId = finalCategoryId;
+            
+            // 如果需要创建新分类
+            if (!categoryId && categoryName) {
+                // 创建新分类
+                const newCategory = await prisma.category.create({
+                    data: {
+                        name: categoryName,
+                        icon: categoryIcon,
+                        type: 'EXPENSE',
+                        sortOrder: availableCategories.length + 1
+                    }
+                });
+                categoryId = newCategory.id;
+                console.log(`创建新分类: ${categoryName} (${newCategory.id})`);
             }
+            
+            // 创建支出记录
+            return await prisma.expense.create({
+                data: {
+                    amount: amount,
+                    description: description || rawText,
+                    categoryId: categoryId,
+                    date: date ? new Date(date) : new Date(),
+                    userId: user.userId,
+                    // AI分析相关字段
+                    rawText: rawText,
+                    aiConfidence: confidence,
+                    aiTags: tags ? tags.join(',') : null,
+                    aiMerchant: merchant,
+                    aiReasoning: reasoning,
+                    aiUsage: JSON.stringify((analysis as any).usage || null)
+                },
+                include: {
+                    category: {
+                        select: {
+                            id: true,
+                            name: true,
+                            icon: true,
+                            type: true,
+                            sortOrder: true
+                        }
+                    }
+                }
+            });
         });
+
+        performanceData['database_create_with_transaction'] = performance.now() - dbCreateStartTime;
+
+        // 记录总执行时间
+        performanceData['total'] = performance.now() - startTime;
+        console.log('性能监控数据(单项支出):', JSON.stringify(performanceData, null, 2));
 
         return NextResponse.json(
             ResponseUtil.success({
@@ -527,7 +583,8 @@ export async function POST(request: NextRequest) {
                     tags,
                     merchant,
                     reasoning
-                }
+                },
+                performance: performanceData
             }, '支出记录创建成功')
         );
 

@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
-import { PrismaClient } from '../../../../generated/prisma'
 import { ResponseUtil } from '../../../../utils/response'
-
-const prisma = new PrismaClient()
+import prisma from '../../../../lib/prisma'
 
 // 微信小程序配置
 const WECHAT_CONFIG = {

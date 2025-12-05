@@ -11,7 +11,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // 小程序用户模型
@@ -112,6 +111,7 @@ model Category {
   
   @@map("categories")
   @@unique([userId, name, type])
+  @@index([type]) // 为type字段添加索引，加速查询
 }
 
 // 预算模型
@@ -307,4 +307,5 @@ model Expense {
   aiUsage      String?
   
   @@map("expenses")
+  @@index([userId, date]) // 添加复合索引，优化按用户ID和日期范围的查询
 }

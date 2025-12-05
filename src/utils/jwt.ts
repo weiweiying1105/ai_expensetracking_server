@@ -1,10 +1,8 @@
 import jwt from 'jsonwebtoken'
 import { NextRequest } from 'next/server'
-import { PrismaClient } from '../generated/prisma'
 import { ResponseCode } from '../../utils/response'
 import { ResponseMessage } from './response'
-
-const prisma = new PrismaClient()
+import prisma from '../lib/prisma'
 const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key'
 
 export interface JWTPayload {
@@ -62,16 +60,7 @@ export async function verifyToken(request: NextRequest): Promise<JWTPayload | nu
     // 验证token
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload
 
-    // 可选：检查用户是否仍然存在
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId }
-    })
-
-    if (!user) {
-      console.error('用户不存在')
-      return null
-    }
-
+    // 只进行token验证，不额外查询数据库，减少性能开销
     return decoded
 
   } catch (error) {

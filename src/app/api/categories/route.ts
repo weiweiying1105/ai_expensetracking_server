@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '../../../generated/prisma'
-import { ResponseUtil } from '../../../utils/response'
-import { verifyToken } from '../../../utils/jwt'
-
-const prisma = new PrismaClient()
+import { ResponseUtil } from '@/utils/response'
+import { verifyToken } from '@/utils/jwt'
+import { Category } from '@/generated/prisma'
+import prisma from '@/lib/prisma'
 
 // 获取分类列表
 export async function GET(request: NextRequest) {

@@ -2,12 +2,11 @@ import { verifyToken } from "@/utils/jwt";
 import { ResponseUtil } from "@/utils/response";
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
-import { PrismaClient } from "@/generated/prisma";
-
-const prisma = new PrismaClient();
+import prisma from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
     try {
+        // 验证用户身份
         const user = await verifyToken(request);
         if (!user) {
             return NextResponse.json(
@@ -16,10 +15,10 @@ export async function GET(request: NextRequest) {
             );
         }
 
+        // 获取并验证月份参数
         const { searchParams } = new URL(request.url);
         const month = searchParams.get('month'); // 格式: 2022-09
 
-        // 验证月份参数
         if (!month) {
             return NextResponse.json(
                 ResponseUtil.error('缺少月份参数，格式应为: YYYY-MM'),
@@ -27,7 +26,6 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // 验证月份格式
         const monthRegex = /^\d{4}-\d{2}$/;
         if (!monthRegex.test(month)) {
             return NextResponse.json(
@@ -43,7 +41,7 @@ export async function GET(request: NextRequest) {
         const startDate = new Date(year, monthNum - 1, 1); // 月份从0开始
         const endDate = new Date(year, monthNum, 0, 23, 59, 59, 999); // 该月最后一天的最后时刻
 
-        // 查询该月的所有支出
+        // 查询支出列表（仅选择必要字段，减少数据传输）
         const expenses = await prisma.expense.findMany({
             where: {
                 userId: user.userId,
@@ -52,85 +50,117 @@ export async function GET(request: NextRequest) {
                     lte: endDate
                 }
             },
-            include: {
-                category: true
+            select: {
+                id: true,
+                amount: true,
+                description: true,
+                createdAt: true,
+                rawText: true,
+                aiMerchant: true,
+                aiConfidence: true,
+                categoryId: true,
+                category: {
+                    select: {
+                        id: true,
+                        name: true,
+                        icon: true
+                    }
+                }
             },
             orderBy: {
                 createdAt: 'desc'
             }
         });
 
+        // 获取所有涉及的分类信息（避免在循环中多次查询）
+        const categoryIds = Array.from(new Set(expenses
+            .filter(expense => expense.categoryId)
+            .map(expense => expense.categoryId!)));
+            
+        const categories = await prisma.category.findMany({
+            where: {
+                id: { in: categoryIds }
+            },
+            select: {
+                id: true,
+                name: true,
+                icon: true
+            }
+        });
+        
+        const categoryMap = new Map(categories.map(cat => [cat.id, cat]));
+
         // 计算统计数据
         const totalAmount = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
         const totalCount = expenses.length;
 
-        // 按分类统计
-        const categoryStats = expenses.reduce((stats: Record<string, {
+        // 按分类统计（优化：使用Map提高查找效率）
+        const categoryStatsMap = new Map<string, {
             name: string;
             icon: string;
             amount: number;
             count: number;
-            expenses: Array<{
-                id: number;
-                amount: number;
-                description: string;
-                date: Date;
-                rawText: string | null;
-            }>;
-        }>, expense) => {
-            const categoryName = expense.category?.name || '未分类';
-            const categoryIcon = expense.category?.icon || '📝';
+            expenses: typeof expenses;
+        }>();
 
-            if (!stats[categoryName]) {
-                stats[categoryName] = {
+        expenses.forEach(expense => {
+            const categoryId = expense.categoryId;
+            const category = categoryId ? categoryMap.get(categoryId) : null;
+            const categoryName = category?.name || '未分类';
+            const categoryIcon = category?.icon || '📝';
+
+            if (!categoryStatsMap.has(categoryName)) {
+                categoryStatsMap.set(categoryName, {
                     name: categoryName,
                     icon: categoryIcon,
                     amount: 0,
                     count: 0,
                     expenses: []
-                };
+                });
             }
 
-            stats[categoryName].amount += Number(expense.amount);
-            stats[categoryName].count += 1;
-            stats[categoryName].expenses.push({
-                id: expense.id,
-                amount: Number(expense.amount),
-                description: expense.description || '',
-                date: expense.createdAt,
-                rawText: expense.rawText
-            });
-
-            return stats;
-        }, {});
+            const stats = categoryStatsMap.get(categoryName)!;
+            stats.amount += Number(expense.amount);
+            stats.count += 1;
+            stats.expenses.push(expense);
+        });
 
         // 转换为数组并按金额排序
-        const categoryList = Object.values(categoryStats).sort((a, b) => b.amount - a.amount);
+        const formattedCategoryStats = Array.from(categoryStatsMap.values())
+            .sort((a, b) => b.amount - a.amount);
 
-        // 按日期统计（每日支出）
-        const dailyStats = expenses.reduce((stats: Record<string, {
+        // 按日期统计（优化：使用Map提高查找效率）
+        const dailyStatsMap = new Map<string, {
             date: string;
             amount: number;
             count: number;
-        }>, expense) => {
+        }>();
+
+        expenses.forEach(expense => {
             const date = expense.createdAt.toISOString().split('T')[0]; // YYYY-MM-DD
 
-            if (!stats[date]) {
-                stats[date] = {
+            if (!dailyStatsMap.has(date)) {
+                dailyStatsMap.set(date, {
                     date,
                     amount: 0,
                     count: 0
-                };
+                });
             }
 
-            stats[date].amount += Number(expense.amount);
-            stats[date].count += 1;
-
-            return stats;
-        }, {});
+            const stats = dailyStatsMap.get(date)!;
+            stats.amount += Number(expense.amount);
+            stats.count += 1;
+        });
 
         // 转换为数组并按日期排序
-        const dailyList = Object.values(dailyStats).sort((a, b) => a.date.localeCompare(b.date));
+        const formattedDailyStats = Array.from(dailyStatsMap.values())
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+        // 计算平均每日支出
+        const daysInMonth = new Date(year, monthNum, 0).getDate();
+        const averageDaily = totalCount > 0 
+            ? (totalAmount / daysInMonth).toFixed(2)
+            : 0;
 
         return NextResponse.json(
             ResponseUtil.success({
@@ -138,19 +168,15 @@ export async function GET(request: NextRequest) {
                 summary: {
                     totalAmount,
                     totalCount,
-                    averageDaily: totalCount > 0 ? (totalAmount / new Date(year, monthNum, 0).getDate()).toFixed(2) : 0
+                    averageDaily: Number(averageDaily)
                 },
-                categoryStats: categoryList,
-                dailyStats: dailyList,
+                categoryStats: formattedCategoryStats,
+                dailyStats: formattedDailyStats,
                 expenses: expenses.map(expense => ({
                     id: expense.id,
                     amount: Number(expense.amount),
                     description: expense.description,
-                    category: {
-                        id: expense.category?.id,
-                        name: expense.category?.name,
-                        icon: expense.category?.icon
-                    },
+                    category: expense.category,
                     date: expense.createdAt,
                     rawText: expense.rawText,
                     aiMerchant: expense.aiMerchant,
