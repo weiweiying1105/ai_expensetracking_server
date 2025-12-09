@@ -4,6 +4,9 @@ import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 
+// 简单内存缓存，降低同一时间段的重复请求开销（TTL 15s）
+const rangeCache = new Map<string, { data: any; expiresAt: number }>();
+
 export async function GET(request: NextRequest) {
     try {
         const user = await verifyToken(request);
@@ -48,91 +51,80 @@ export async function GET(request: NextRequest) {
         const startOfDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
         const endOfDay = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
 
-        // 查询指定时间范围内的支出记录和统计信息
-        const [expenses, totalAmount, categoryStats] = await Promise.all([
-            // 获取支出列表
-            prisma.expense.findMany({
-                where: {
-                    userId: user.userId,
-                    date: {
-                        gte: startOfDay,
-                        lt: endOfDay
-                    }
-                },
-                include: {
-                    category: true
-                },
-                orderBy: {
-                    date: 'desc'
-                }
-            }),
-            // 获取总金额
-            prisma.expense.aggregate({
-                where: {
-                    userId: user.userId,
-                    date: {
-                        gte: startOfDay,
-                        lt: endOfDay
-                    }
-                },
-                _sum: {
-                    amount: true
-                }
-            }),
-            // 获取分类统计
-            prisma.expense.groupBy({
-                by: ['categoryId'],
-                where: {
-                    userId: user.userId,
-                    date: {
-                        gte: startOfDay,
-                        lt: endOfDay
-                    }
-                },
-                _sum: {
-                    amount: true
-                },
-                _count: {
-                    id: true
-                }
-            })
-        ]);
+        // 命中缓存直接返回
+        const cacheKey = `${user.userId}:${startDate}:${endDate}`;
+        const now = Date.now();
+        const cached = rangeCache.get(cacheKey);
+        if (cached && cached.expiresAt > now) {
+            return NextResponse.json(
+                ResponseUtil.success(cached.data, '时间区间支出查询成功（缓存）')
+            );
+        }
 
-        // 获取分类信息并组合统计数据
-        const categoryIds = categoryStats.map(stat => stat.categoryId).filter((id): id is string => id !== null);
-        const categories = await prisma.category.findMany({
+        // 单次查询所有所需字段，减少往返
+        const expenses = await prisma.expense.findMany({
             where: {
-                id: {
-                    in: categoryIds
+                userId: user.userId,
+                date: {
+                    gte: startOfDay,
+                    lt: endOfDay
                 }
-            }
+            },
+            select: {
+                id: true,
+                amount: true,
+                description: true,
+                date: true,
+                categoryId: true,
+                category: {
+                    select: { id: true, name: true, icon: true, color: true }
+                }
+            },
+            orderBy: { date: 'desc' }
         });
 
-        const categoryStatsWithNames = categoryStats.map(stat => {
-            const category = categories.find(cat => cat.id === stat.categoryId);
-            return {
-                categoryId: stat.categoryId,
-                categoryName: category?.name || '未知分类',
-                categoryIcon: category?.icon || '💰',
-                totalAmount: stat._sum.amount || 0,
-                count: stat._count.id
-            };
-        });
+        // 在内存中计算总金额与分类统计，避免额外两次数据库查询
+        let totalAmount = 0;
+        const statMap = new Map<string | null, { totalAmount: number; count: number; name: string; icon: string | null }>();
+        for (const e of expenses) {
+            const amt = Number((e as any).amount);
+            totalAmount += isFinite(amt) ? amt : 0;
+            const key = e.categoryId ?? null;
+            const name = e.category?.name || '未知分类';
+            const icon = e.category?.icon || '💰';
+            const prev = statMap.get(key);
+            if (prev) {
+                prev.totalAmount += isFinite(amt) ? amt : 0;
+                prev.count += 1;
+            } else {
+                statMap.set(key, { totalAmount: isFinite(amt) ? amt : 0, count: 1, name, icon });
+            }
+        }
+
+        const categoryStats = Array.from(statMap.entries()).map(([categoryId, data]) => ({
+            categoryId,
+            categoryName: data.name,
+            categoryIcon: data.icon,
+            totalAmount: data.totalAmount,
+            count: data.count
+        }));
+
+        const payload = {
+            dateRange: { startDate, endDate },
+            summary: {
+                totalAmount,
+                totalCount: expenses.length,
+                dayCount: Math.ceil((endOfDay.getTime() - startOfDay.getTime()) / (1000 * 60 * 60 * 24))
+            },
+            categoryStats,
+            expenses
+        };
+
+        // 写入缓存（TTL 15s）
+        rangeCache.set(cacheKey, { data: payload, expiresAt: now + 15_000 });
 
         return NextResponse.json(
-            ResponseUtil.success({
-                dateRange: {
-                    startDate: startDate,
-                    endDate: endDate
-                },
-                summary: {
-                    totalAmount: totalAmount._sum.amount || 0,
-                    totalCount: expenses.length,
-                    dayCount: Math.ceil((endOfDay.getTime() - startOfDay.getTime()) / (1000 * 60 * 60 * 24))
-                },
-                categoryStats: categoryStatsWithNames,
-                expenses
-            }, '时间区间支出查询成功')
+            ResponseUtil.success(payload, '时间区间支出查询成功')
         );
 
     } catch (error) {

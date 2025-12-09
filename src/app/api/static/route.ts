@@ -4,6 +4,19 @@ import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 
+// 轻量内存缓存（TTL 15s），按用户与月份缓存结果
+const staticCache = new Map<string, { data: any; expiresAt: number }>();
+
+// 选取字段的类型定义，避免隐式 any
+type ExpenseRow = {
+    id: number;
+    amount: any; // Prisma Decimal
+    description: string | null;
+    date: Date;
+    categoryId: string | null;
+    category: { id: string; name: string; icon: string | null; color: string | null } | null;
+};
+
 export async function GET(request: NextRequest) {
     try {
         // 验证用户身份
@@ -36,78 +49,69 @@ export async function GET(request: NextRequest) {
 
         // 解析年月
         const [year, monthNum] = month.split('-').map(Number);
+        const nowDate = new Date();
+        const currentMonthStr = `${nowDate.getFullYear()}-${String(nowDate.getMonth() + 1).padStart(2, '0')}`;
+        const isCurrentMonth = month === currentMonthStr;
 
-        // 构建查询的开始和结束日期
-        const startDate = new Date(year, monthNum - 1, 1); // 月份从0开始
-        const endDate = new Date(year, monthNum, 0, 23, 59, 59, 999); // 该月最后一天的最后时刻
+        // 构建查询的开始和结束日期（使用记录的业务日期 date 字段，以命中索引）
+        const startDate = new Date(year, monthNum - 1, 1);
+        const nextMonthStart = new Date(year, monthNum, 1);
 
-        // 查询支出列表（仅选择必要字段，减少数据传输）
+        // 缓存命中直接返回（当月不使用缓存）
+        const cacheKey = `${user.userId}:${month}`;
+        const now = Date.now();
+        const cached = !isCurrentMonth ? staticCache.get(cacheKey) : undefined;
+        if (!isCurrentMonth && cached && cached.expiresAt > now) {
+            return NextResponse.json(
+                ResponseUtil.success(cached.data, '月度统计（缓存）')
+            );
+        }
+
+        // 单次查询：选择必要字段，按业务日期过滤
         const expenses = await prisma.expense.findMany({
             where: {
                 userId: user.userId,
-                createdAt: {
+                date: {
                     gte: startDate,
-                    lte: endDate
+                    lt: nextMonthStart
                 }
             },
             select: {
                 id: true,
                 amount: true,
                 description: true,
-                createdAt: true,
-                rawText: true,
-                aiMerchant: true,
-                aiConfidence: true,
+                date: true,
                 categoryId: true,
                 category: {
                     select: {
                         id: true,
                         name: true,
-                        icon: true
+                        icon: true,
+                        color: true
                     }
                 }
             },
             orderBy: {
-                createdAt: 'desc'
+                date: 'desc'
             }
-        });
-
-        // 获取所有涉及的分类信息（避免在循环中多次查询）
-        const categoryIds = Array.from(new Set(expenses
-            .filter(expense => expense.categoryId)
-            .map(expense => expense.categoryId!)));
-            
-        const categories = await prisma.category.findMany({
-            where: {
-                id: { in: categoryIds }
-            },
-            select: {
-                id: true,
-                name: true,
-                icon: true
-            }
-        });
-        
-        const categoryMap = new Map(categories.map(cat => [cat.id, cat]));
+        }) as unknown as ExpenseRow[];
 
         // 计算统计数据
-        const totalAmount = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+        const totalAmount = expenses.reduce((sum: number, expense: ExpenseRow) => sum + Number(expense.amount), 0);
         const totalCount = expenses.length;
 
-        // 按分类统计（优化：使用Map提高查找效率）
+        // 按分类统计（Map 以分类名为键）
         const categoryStatsMap = new Map<string, {
             name: string;
             icon: string;
             amount: number;
             count: number;
-            expenses: typeof expenses;
+            expenses: ExpenseRow[];
         }>();
 
-        expenses.forEach(expense => {
-            const categoryId = expense.categoryId;
-            const category = categoryId ? categoryMap.get(categoryId) : null;
-            const categoryName = category?.name || '未分类';
-            const categoryIcon = category?.icon || '📝';
+        expenses.forEach((expense: ExpenseRow) => {
+            const categoryName = expense.category?.name || '未分类';
+            const categoryIcon = expense.category?.icon || '📝';
 
             if (!categoryStatsMap.has(categoryName)) {
                 categoryStatsMap.set(categoryName, {
@@ -129,27 +133,21 @@ export async function GET(request: NextRequest) {
         const formattedCategoryStats = Array.from(categoryStatsMap.values())
             .sort((a, b) => b.amount - a.amount);
 
-        // 按日期统计（优化：使用Map提高查找效率）
+        // 按日期统计（YYYY-MM-DD）
         const dailyStatsMap = new Map<string, {
             date: string;
             amount: number;
             count: number;
         }>();
 
-        expenses.forEach(expense => {
-            const date = expense.createdAt.toISOString().split('T')[0]; // YYYY-MM-DD
-
-            if (!dailyStatsMap.has(date)) {
-                dailyStatsMap.set(date, {
-                    date,
-                    amount: 0,
-                    count: 0
-                });
+        expenses.forEach((expense: ExpenseRow) => {
+            const dateStr = expense.date.toISOString().split('T')[0];
+            if (!dailyStatsMap.has(dateStr)) {
+                dailyStatsMap.set(dateStr, { date: dateStr, amount: 0, count: 0 });
             }
-
-            const stats = dailyStatsMap.get(date)!;
-            stats.amount += Number(expense.amount);
-            stats.count += 1;
+            const ds = dailyStatsMap.get(dateStr)!;
+            ds.amount += Number(expense.amount);
+            ds.count += 1;
         });
 
         // 转换为数组并按日期排序
@@ -158,31 +156,33 @@ export async function GET(request: NextRequest) {
 
         // 计算平均每日支出
         const daysInMonth = new Date(year, monthNum, 0).getDate();
-        const averageDaily = totalCount > 0 
-            ? (totalAmount / daysInMonth).toFixed(2)
-            : 0;
+        const averageDaily = totalCount > 0 ? Number((totalAmount / daysInMonth).toFixed(2)) : 0;
+
+        const payload = {
+            month,
+            summary: {
+                totalAmount,
+                totalCount,
+                averageDaily
+            },
+            categoryStats: formattedCategoryStats,
+            dailyStats: formattedDailyStats,
+            expenses: expenses.map((expense: ExpenseRow) => ({
+                id: expense.id,
+                amount: Number(expense.amount),
+                description: expense.description,
+                category: expense.category,
+                date: expense.date,
+            }))
+        };
+
+        // 写入缓存（TTL 15s，当月不写缓存）
+        if (!isCurrentMonth) {
+            staticCache.set(cacheKey, { data: payload, expiresAt: now + 15_000 });
+        }
 
         return NextResponse.json(
-            ResponseUtil.success({
-                month,
-                summary: {
-                    totalAmount,
-                    totalCount,
-                    averageDaily: Number(averageDaily)
-                },
-                categoryStats: formattedCategoryStats,
-                dailyStats: formattedDailyStats,
-                expenses: expenses.map(expense => ({
-                    id: expense.id,
-                    amount: Number(expense.amount),
-                    description: expense.description,
-                    category: expense.category,
-                    date: expense.createdAt,
-                    rawText: expense.rawText,
-                    aiMerchant: expense.aiMerchant,
-                    aiConfidence: expense.aiConfidence
-                }))
-            })
+            ResponseUtil.success(payload)
         );
 
     } catch (error: unknown) {

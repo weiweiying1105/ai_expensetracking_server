@@ -192,7 +192,10 @@ interface Category {
     sortOrder: number;
     userId: string | null;
 }
-
+// 判断分类在不在数据库中的分类中
+export function isCategoryInDatabase(category: string, availableCategories: Category[]) {
+    return availableCategories.some((availableCategory) => availableCategory.name === category);
+}
 // 快速分析支出的工具函数
 export function quickAnalyzeExpense(rawText: string, availableCategories: Category[]) {
     const text = rawText.trim();
@@ -216,7 +219,8 @@ export function quickAnalyzeExpense(rawText: string, availableCategories: Catego
                     categoryId: category?.id || null,
                     merchant: null,
                     reasoning: `通过正则匹配识别为${pattern.category}支出`,
-                    isExpense: true
+                    isExpense: true,
+                    categoryName: pattern.category
                 },
                 isQuickMatch: true
             };

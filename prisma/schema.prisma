@@ -11,6 +11,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // 小程序用户模型
@@ -287,7 +288,6 @@ model Expense {
   id          Int       @id @default(autoincrement())
   amount      Decimal
   description String?
-  currency    String    @default("CNY")
   rawText     String
   date        DateTime
   createdAt   DateTime  @default(now())
@@ -299,12 +299,6 @@ model Expense {
   categoryId  String?
   category    Category? @relation(fields: [categoryId], references: [id])
   
-  // AI分析相关字段
-  aiConfidence Float?
-  aiTags       String?
-  aiMerchant   String?
-  aiReasoning  String?
-  aiUsage      String?
   
   @@map("expenses")
   @@index([userId, date]) // 添加复合索引，优化按用户ID和日期范围的查询
