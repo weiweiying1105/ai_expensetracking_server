@@ -24,7 +24,7 @@ async function main() {
     await prisma.category.upsert({
       where: {
         userId_name_type: {
-          userId: null,
+          userId: undefined,
           name: category.name,
           type: category.type as any
         }
