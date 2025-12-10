@@ -21,22 +21,26 @@ async function main() {
   ]
 
   for (const category of defaultCategories) {
-    await prisma.category.upsert({
+    // 先查找是否已存在该系统默认分类
+    let existingCategory = await prisma.category.findFirst({
       where: {
-        userId_name_type: {
-          userId: undefined,
-          name: category.name,
-          type: category.type as any
-        }
-      },
-      update: {},
-      create: {
-        ...category,
-        isDefault: true,
-        sortOrder: defaultCategories.indexOf(category),
+        name: category.name,
         type: category.type as any,
-      },
+        isDefault: true
+      }
     })
+
+    // 如果不存在则创建
+    if (!existingCategory) {
+      await prisma.category.create({
+        data: {
+          ...category,
+          isDefault: true,
+          sortOrder: defaultCategories.indexOf(category),
+          type: category.type as any,
+        }
+      })
+    }
   }
 
   console.log('✅ 默认分类创建完成')
