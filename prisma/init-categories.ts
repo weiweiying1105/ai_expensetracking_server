@@ -1,5 +1,9 @@
 import { TransactionType } from '@/generated/prisma'
-import prisma from '@/lib/prisma'
+import { PrismaClient, TransactionType } from '@prisma/client'
+import { PrismaClient as GeneratedPrismaClient } from '../src/generated/prisma'
+
+// 创建Prisma客户端实例
+const prisma = new GeneratedPrismaClient()
 
 // 初始化分类数据
 const categories = [
