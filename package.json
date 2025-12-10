@@ -12,6 +12,7 @@
     "db:reset": "npx prisma db push --force-reset && npm run db:seed\n"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.1.0",
     "axios": "^1.11.0",
     "cloudinary": "^2.7.0",
     "cloudinary-core": "^2.14.0",

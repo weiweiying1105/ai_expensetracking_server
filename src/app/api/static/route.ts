@@ -167,13 +167,13 @@ export async function GET(request: NextRequest) {
             },
             categoryStats: formattedCategoryStats,
             dailyStats: formattedDailyStats,
-            expenses: expenses.map((expense: ExpenseRow) => ({
-                id: expense.id,
-                amount: Number(expense.amount),
-                description: expense.description,
-                category: expense.category,
-                date: expense.date,
-            }))
+            // expenses: expenses.map((expense: ExpenseRow) => ({
+            //     id: expense.id,
+            //     amount: Number(expense.amount),
+            //     description: expense.description,
+            //     category: expense.category,
+            //     date: expense.date,
+            // }))
         };
 
         // 写入缓存（TTL 15s，当月不写缓存）

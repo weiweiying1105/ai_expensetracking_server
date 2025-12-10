@@ -1,19 +1,22 @@
 {
   "version": "0.2.0",
   "configurations": [
-    
     {
-      "type": "node",
+      "name": "Next.js Dev (Debug)",
+      "type": "pwa-node",
       "request": "launch",
-      "name": "Next.js Dev (Inspect)",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["--inspect=9229"],
       "program": "${workspaceFolder}/node_modules/next/dist/bin/next",
       "args": ["dev"],
       "cwd": "${workspaceFolder}",
-      "env": { "PORT": "3000" },
-      "autoAttachChildProcesses": true,
-      "skipFiles": ["<node_internals>/**"]
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "restart": true,
+      "env": {
+        "PORT": "3000",
+        "NODE_OPTIONS": "--enable-source-maps"
+      }
     }
   ]
 }

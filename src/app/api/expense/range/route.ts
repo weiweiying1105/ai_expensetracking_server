@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
                 totalCount: expenses.length,
                 dayCount: Math.ceil((endOfDay.getTime() - startOfDay.getTime()) / (1000 * 60 * 60 * 24))
             },
-            categoryStats,
+            // categoryStats,
             expenses
         };
 
