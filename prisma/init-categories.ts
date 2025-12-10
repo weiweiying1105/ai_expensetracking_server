@@ -1,6 +1,5 @@
-const { PrismaClient, TransactionType } = require('../src/generated/prisma')
-
-const prisma = new PrismaClient()
+import { TransactionType } from '@/generated/prisma'
+import prisma from '@/lib/prisma'
 
 // 初始化分类数据
 const categories = [
