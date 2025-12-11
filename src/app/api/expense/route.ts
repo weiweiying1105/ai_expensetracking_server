@@ -113,7 +113,7 @@ ${categoriesText}
 export async function POST(request: NextRequest) {
     const user = await verifyToken(request);
     if (!user) {
-        return NextResponse.json(
+        return createJsonResponse(
             ResponseUtil.error('未授权访问'),
             { status: 401 }
         );
