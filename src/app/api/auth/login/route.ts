@@ -3,6 +3,9 @@ import jwt from 'jsonwebtoken'
 import { ResponseUtil } from '../../../../utils/response'
 import prisma from '../../../../lib/prisma'
 
+// 强制动态渲染，因为需要访问请求头和JSON body
+export const dynamic = 'force-dynamic';
+
 // 微信小程序配置
 const WECHAT_CONFIG = {
   appId: process.env.WECHAT_APP_ID!,

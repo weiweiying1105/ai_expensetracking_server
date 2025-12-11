@@ -8,6 +8,9 @@ import axios from 'axios';
 import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse, NextRequest } from 'next/server';
 
+// 强制动态渲染，因为需要处理文件上传
+export const dynamic = 'force-dynamic';
+
 // 配置 Cloudinary
 cloudinary.config({
     cloud_name: 'dc6wdjxld',

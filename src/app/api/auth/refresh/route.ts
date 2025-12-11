@@ -3,6 +3,9 @@ import jwt from 'jsonwebtoken'
 import { ResponseUtil } from '../../../../utils/response'
 import prisma from '../../../../lib/prisma'
 
+// 强制动态渲染，因为需要访问请求头和JSON body
+export const dynamic = 'force-dynamic';
+
 const JWT_SECRET = process.env.JWT_SECRET as string;
 const JWT_EXPIRES_IN = '7d';
 

@@ -7,6 +7,9 @@ import { OpenAI } from "openai";
 import prisma from "@/lib/prisma";
 import { createExpenseCategory, getExpenseAllCategory } from "../categories";
 
+// 强制动态渲染，因为需要访问请求头
+export const dynamic = 'force-dynamic';
+
 const client = new OpenAI({
     apiKey: process.env.DEEPSEEK_API_KEY,
     baseURL: "https://api.deepseek.com",

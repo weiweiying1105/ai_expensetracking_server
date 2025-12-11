@@ -3,6 +3,9 @@ import { ResponseUtil } from "@/utils/response";
 import { NextResponse,NextRequest } from "next/server";
 import prisma  from "@/lib/prisma";
 
+// 强制动态渲染，因为需要访问请求头
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
     try {
         // 验证用户身份

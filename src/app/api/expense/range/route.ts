@@ -4,6 +4,9 @@ import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 
+// 强制动态渲染，因为需要访问请求头
+export const dynamic = 'force-dynamic';
+
 // 简单内存缓存，降低同一时间段的重复请求开销（TTL 15s）
 const rangeCache = new Map<string, { data: any; expiresAt: number }>();
 
