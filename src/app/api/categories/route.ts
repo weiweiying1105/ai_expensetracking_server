@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         const user = await verifyToken(request)
 
         if (!user) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('未授权访问'),
                 { status: 401 }
             )
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
 
         // 验证必填字段
         if (!name || !type) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('分类名称和类型不能为空'),
                 { status: 400 }
             )
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
 
         // 验证类型
         if (type !== TransactionType.INCOME && type !== TransactionType.EXPENSE) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('分类类型必须是 INCOME 或 EXPENSE'),
                 { status: 400 }
             )
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
         })
 
         if (existingCategory) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('该分类名称已存在'),
                 { status: 400 }
             )
@@ -113,13 +113,13 @@ export async function POST(request: NextRequest) {
             }
         })
 
-        return NextResponse.json(
+        return createJsonResponse(
             ResponseUtil.success(newCategory, '创建分类成功')
         )
 
     } catch (error) {
         console.error('创建分类错误:', error)
-        return NextResponse.json(
+        return createJsonResponse(
             ResponseUtil.error('服务器内部错误'),
             { status: 500 }
         )
