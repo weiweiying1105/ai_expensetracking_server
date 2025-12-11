@@ -141,12 +141,15 @@ export class ResponseUtil {
   }
 }
 
-// 创建带有正确Content-Type头的NextResponse
+// 创建带有正确Content-Type和CORS头的NextResponse
 export function createJsonResponse(data: any, options?: ResponseInit) {
   return NextResponse.json(data, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*', // 允许所有来源访问，生产环境可配置为特定域名
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', // 允许的HTTP方法
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With', // 允许的请求头
       ...options?.headers
     }
   });

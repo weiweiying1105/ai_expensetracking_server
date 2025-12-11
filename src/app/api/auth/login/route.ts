@@ -132,3 +132,8 @@ export async function GET() {
     ResponseUtil.success(null, '微信登录接口正常运行')
   )
 }
+
+// 处理OPTIONS请求，支持CORS跨域
+export async function OPTIONS() {
+  return createJsonResponse(null, { status: 200 })
+}

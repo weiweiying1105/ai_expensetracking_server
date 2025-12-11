@@ -125,3 +125,8 @@ export async function POST(request: NextRequest) {
         )
     }
 }
+
+// 处理OPTIONS请求，支持CORS跨域
+export async function OPTIONS() {
+    return createJsonResponse(null, { status: 200 })
+}
