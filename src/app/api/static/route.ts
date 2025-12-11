@@ -1,6 +1,5 @@
 import { verifyToken } from "@/utils/jwt";
-import { ResponseUtil } from "@/utils/response";
-import { NextResponse } from "next/server";
+import { ResponseUtil, createJsonResponse } from "@/utils/response";
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 
@@ -25,7 +24,7 @@ export async function GET(request: NextRequest) {
         // 验证用户身份
         const user = await verifyToken(request);
         if (!user) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('未授权访问'),
                 { status: 401 }
             );
@@ -36,7 +35,7 @@ export async function GET(request: NextRequest) {
         const month = searchParams.get('month'); // 格式: 2022-09
 
         if (!month) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('缺少月份参数，格式应为: YYYY-MM'),
                 { status: 400 }
             );
@@ -44,7 +43,7 @@ export async function GET(request: NextRequest) {
 
         const monthRegex = /^\d{4}-\d{2}$/;
         if (!monthRegex.test(month)) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('月份格式错误，应为: YYYY-MM'),
                 { status: 400 }
             );
@@ -65,9 +64,9 @@ export async function GET(request: NextRequest) {
         const now = Date.now();
         const cached = !isCurrentMonth ? staticCache.get(cacheKey) : undefined;
         if (!isCurrentMonth && cached && cached.expiresAt > now) {
-            return NextResponse.json(
-                ResponseUtil.success(cached.data, '月度统计（缓存）')
-            );
+            return createJsonResponse(
+            ResponseUtil.success(cached.data, '月度统计（缓存）')
+        );
         }
 
         // 单次查询：选择必要字段，按业务日期过滤
@@ -184,13 +183,13 @@ export async function GET(request: NextRequest) {
             staticCache.set(cacheKey, { data: payload, expiresAt: now + 15_000 });
         }
 
-        return NextResponse.json(
+        return createJsonResponse(
             ResponseUtil.success(payload)
         );
 
     } catch (error: unknown) {
         console.error('获取月度支出统计失败:', error);
-        return NextResponse.json(
+        return createJsonResponse(
             ResponseUtil.error('服务器内部错误'),
             { status: 500 }
         );

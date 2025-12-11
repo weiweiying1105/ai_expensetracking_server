@@ -3,10 +3,10 @@
 // 上传图片到CLOUDINARY_URL=cloudinary://<your_api_key>:<your_api_secret>@dc6wdjxld
 
 // JWT相关导入已移除，因为此接口不需要验证token
-import { ResponseCode, ResponseUtil } from '@/utils/response';
+import { ResponseCode, ResponseUtil, createJsonResponse } from '@/utils/response';
 import axios from 'axios';
 import { v2 as cloudinary } from 'cloudinary';
-import { NextResponse, NextRequest } from 'next/server';
+import { NextRequest } from 'next/server';
 
 // 强制动态渲染，因为需要处理文件上传
 export const dynamic = 'force-dynamic';
@@ -37,7 +37,7 @@ const postHandler = async (body: { filePath: string }): Promise<Response> => {
         console.log('HHHHHHHH', _response);
 
         if (!filePath) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('请提供头像临时地址'),
                 { status: 400 }
             );
@@ -45,7 +45,7 @@ const postHandler = async (body: { filePath: string }): Promise<Response> => {
 
         // 检查是否为小程序本地临时路径
         if (filePath.startsWith('http://tmp/') || filePath.startsWith('https://tmp/')) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('不支持小程序本地临时路径，请使用网络地址或上传文件流'),
                 { status: 400 }
             );
@@ -58,7 +58,7 @@ const postHandler = async (body: { filePath: string }): Promise<Response> => {
                 throw new Error('不支持的协议');
             }
         } catch {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('请提供有效的网络地址（http或https）'),
                 { status: 400 }
             );
@@ -74,7 +74,7 @@ const postHandler = async (body: { filePath: string }): Promise<Response> => {
 
         // 验证文件大小（限制5MB）
         if (buffer.length > 5 * 1024 * 1024) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('头像文件大小不能超过5MB'),
                 { status: 400 }
             );
@@ -113,7 +113,7 @@ const postHandler = async (body: { filePath: string }): Promise<Response> => {
             size: result.bytes
         };
 
-        return NextResponse.json(
+        return createJsonResponse(
             ResponseUtil.success(avatarInfo, '头像上传成功')
         );
 
@@ -122,20 +122,20 @@ const postHandler = async (body: { filePath: string }): Promise<Response> => {
 
         // 根据错误类型返回不同的错误信息
         if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('无法访问临时地址，请重新获取头像'),
                 { status: 400 }
             );
         }
 
         if (error.code === 'ECONNABORTED') {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('下载超时，请重试'),
                 { status: 408 }
             );
         }
 
-        return NextResponse.json(
+        return createJsonResponse(
             ResponseUtil.error('头像上传失败，请重试'),
             { status: 500 }
         );
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
         return await postHandler(body);
     } catch (error) {
         console.error('解析请求参数失败:', error);
-        return NextResponse.json(
+        return createJsonResponse(
             ResponseUtil.error('请求参数格式错误'),
             { status: 400 }
         );

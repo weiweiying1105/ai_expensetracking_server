@@ -1,6 +1,5 @@
 import { verifyToken } from "@/utils/jwt"
-import { ResponseUtil } from "@/utils/response";
-import { NextResponse } from "next/server";
+import { ResponseUtil, createJsonResponse } from "@/utils/response";
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 
@@ -14,7 +13,7 @@ export async function GET(request: NextRequest) {
     try {
         const user = await verifyToken(request);
         if (!user) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('未授权访问'),
                 { status: 401 }
             );
@@ -26,7 +25,7 @@ export async function GET(request: NextRequest) {
 
         // 验证必需参数
         if (!startDate || !endDate) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('缺少必需参数：startDate 和 endDate'),
                 { status: 400 }
             );
@@ -37,14 +36,14 @@ export async function GET(request: NextRequest) {
         const end = new Date(endDate);
 
         if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('日期格式无效，请使用 YYYY-MM-DD 格式'),
                 { status: 400 }
             );
         }
 
         if (start > end) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('开始时间不能晚于结束时间'),
                 { status: 400 }
             );
@@ -59,7 +58,7 @@ export async function GET(request: NextRequest) {
         const now = Date.now();
         const cached = rangeCache.get(cacheKey);
         if (cached && cached.expiresAt > now) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.success(cached.data, '时间区间支出查询成功（缓存）')
             );
         }
@@ -126,13 +125,13 @@ export async function GET(request: NextRequest) {
         // 写入缓存（TTL 15s）
         rangeCache.set(cacheKey, { data: payload, expiresAt: now + 15_000 });
 
-        return NextResponse.json(
+        return createJsonResponse(
             ResponseUtil.success(payload, '时间区间支出查询成功')
         );
 
     } catch (error) {
         console.error('查询时间区间支出失败:', error);
-        return NextResponse.json(
+        return createJsonResponse(
             ResponseUtil.error('服务器内部错误'),
             { status: 500 }
         );

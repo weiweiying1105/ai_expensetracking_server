@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { ResponseUtil } from '../../../../utils/response'
+import { NextRequest } from 'next/server'
+import { ResponseUtil, createJsonResponse } from '../../../../utils/response'
 import { verifyToken } from '../../../../utils/jwt'
 import prisma from '../../../../lib/prisma'
 
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const user = await verifyToken(request)
 
     if (!user) {
-      return NextResponse.json(
+      return createJsonResponse(
         ResponseUtil.error('未授权访问'),
         { status: 401 }
       )
@@ -33,19 +33,19 @@ export async function GET(request: NextRequest) {
     })
 
     if (!userInfo) {
-      return NextResponse.json(
+      return createJsonResponse(
         ResponseUtil.error('用户不存在'),
         { status: 404 }
       )
     }
 
-    return NextResponse.json(
+    return createJsonResponse(
       ResponseUtil.success(userInfo, '获取用户信息成功')
     )
 
   } catch (error) {
     console.error('获取用户信息错误:', error)
-    return NextResponse.json(
+    return createJsonResponse(
       ResponseUtil.error('服务器内部错误'),
       { status: 500 }
     )
@@ -58,7 +58,7 @@ export async function PUT(request: NextRequest) {
     const user = await verifyToken(request)
 
     if (!user) {
-      return NextResponse.json(
+      return createJsonResponse(
         ResponseUtil.error('未授权访问'),
         { status: 401 }
       )
@@ -84,13 +84,13 @@ export async function PUT(request: NextRequest) {
       }
     })
 
-    return NextResponse.json(
+    return createJsonResponse(
       ResponseUtil.success(updatedUser, '更新用户信息成功')
     )
 
   } catch (error) {
     console.error('更新用户信息错误:', error)
-    return NextResponse.json(
+    return createJsonResponse(
       ResponseUtil.error('服务器内部错误'),
       { status: 500 }
     )

@@ -1,7 +1,6 @@
 import { verifyToken } from "@/utils/jwt"
-import { ResponseUtil } from "@/utils/response";
+import { ResponseUtil, createJsonResponse } from "@/utils/response";
 import { isCategoryInDatabase, quickAnalyzeExpense } from "@/utils/expense-patterns";
-import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import { OpenAI } from "openai";
 import prisma from "@/lib/prisma";
@@ -138,7 +137,7 @@ export async function POST(request: NextRequest) {
         const aiAnalysis = await analyzeExpenseWithAI(rawText, expenseCategory);
         console.log('AI分析结果:', aiAnalysis);
         if (!aiAnalysis.success || !Array.isArray(aiAnalysis.data)) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('未能解析记账内容'),
                 { status: 400 }
             );
@@ -178,7 +177,7 @@ export async function POST(request: NextRequest) {
 
     const records = await Promise.all(ops);
 
-    return NextResponse.json(
+    return createJsonResponse(
         ResponseUtil.success({
             message: '支出/收入分类和记录创建成功',
             // categories: categories,
@@ -192,7 +191,7 @@ export async function GET(request: NextRequest) {
     try {
         const user = await verifyToken(request);
         if (!user) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('未授权访问'),
                 { status: 401 }
             );
@@ -242,7 +241,7 @@ export async function GET(request: NextRequest) {
             prisma.expense.count({ where })
         ]);
 
-        return NextResponse.json(
+        return createJsonResponse(
             ResponseUtil.success({
                 expenses,
                 pagination: {
@@ -256,7 +255,7 @@ export async function GET(request: NextRequest) {
 
     } catch (error) {
         console.error('获取支出记录失败:', error);
-        return NextResponse.json(
+        return createJsonResponse(
             ResponseUtil.error('服务器内部错误'),
             { status: 500 }
         );

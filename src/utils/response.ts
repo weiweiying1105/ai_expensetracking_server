@@ -1,3 +1,5 @@
+import { NextResponse } from 'next/server';
+
 // 响应状态码常量
 export const ResponseCode = {
   // ===== HTTP 通用状态码 =====
@@ -137,4 +139,15 @@ export class ResponseUtil {
   static notFound(message: string = ResponseMessage.NOT_FOUND): ApiResponse {
     return this.error(message, ResponseCode.NOT_FOUND);
   }
+}
+
+// 创建带有正确Content-Type头的NextResponse
+export function createJsonResponse(data: any, options?: ResponseInit) {
+  return NextResponse.json(data, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers
+    }
+  });
 }

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import jwt from 'jsonwebtoken'
-import { ResponseUtil } from '../../../../utils/response'
+import { ResponseUtil, createJsonResponse } from '../../../../utils/response'
 import prisma from '../../../../lib/prisma'
 
 // 强制动态渲染，因为需要访问请求头和JSON body
@@ -20,14 +20,14 @@ export async function POST(request: NextRequest) {
         const oldToken = body?.token || tokenFromHeader
 
         if (!oldToken) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('缺少必要参数token'),
                 { status: 400 }
             )
         }
 
         if (!JWT_SECRET) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('服务器未配置JWT密钥'),
                 { status: 500 }
             )
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
         try {
             payload = jwt.verify(oldToken, JWT_SECRET)
         } catch (err) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('旧 token 无效'),
                 { status: 401 }
             )
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
         // 可选：确保用户仍然存在
         if (!payload?.userId) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('token载荷缺少用户信息'),
                 { status: 400 }
             )
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
             }
         })
         if (!user) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('用户不存在'),
                 { status: 404 }
             )
@@ -70,13 +70,13 @@ export async function POST(request: NextRequest) {
         const newToken = jwt.sign(newTokenPayload, JWT_SECRET, {
             expiresIn: JWT_EXPIRES_IN
         })
-        return NextResponse.json(
+        return createJsonResponse(
             ResponseUtil.success({ token: newToken }, '刷新成功'),
             { status: 200 }
         )
     } catch (error) {
         console.error('刷新token处理错误:', error)
-        return NextResponse.json(
+        return createJsonResponse(
             ResponseUtil.error('服务器内部错误'),
             { status: 500 }
         )

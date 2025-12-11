@@ -1,6 +1,6 @@
 import { verifyToken } from "@/utils/jwt";
-import { ResponseUtil } from "@/utils/response";
-import { NextResponse,NextRequest } from "next/server";
+import { ResponseUtil, createJsonResponse } from "@/utils/response";
+import { NextRequest } from "next/server";
 import prisma  from "@/lib/prisma";
 
 // 强制动态渲染，因为需要访问请求头
@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
         // 验证用户身份
         const user = await verifyToken(request);
         if (!user) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('未授权访问'),
                 { status: 401 }
             );
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
         const {searchParams} = new URL(request.url);
         const dateParam = searchParams.get('month'); // 支持格式: YYYY-MM 或 YYYY-MM-DD
         if (!dateParam) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('缺少日期参数，格式应为: YYYY-MM 或 YYYY-MM-DD'),
                 { status: 400 }
             );
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         const dateRegex = /^(\d{4}-\d{2})(?:-(\d{2}))?$/;
         const match = dateParam.match(dateRegex);
         if (!match) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('日期格式错误，应为: YYYY-MM 或 YYYY-MM-DD'),
                 { status: 400 }
             );
@@ -77,12 +77,12 @@ export async function GET(request: NextRequest) {
                 date: 'desc'
             }
         });
-         return NextResponse.json(
+         return createJsonResponse(
             ResponseUtil.success(response)
         );
     } catch (error) {
         console.error('查询静态数据列表失败:', error);
-        return NextResponse.json(
+        return createJsonResponse(
             ResponseUtil.error('服务器内部错误'),
             { status: 500 }
         );

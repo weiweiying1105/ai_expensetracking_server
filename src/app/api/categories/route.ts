@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { ResponseUtil } from '@/utils/response'
+import { NextRequest } from 'next/server'
+import { ResponseUtil, createJsonResponse } from '@/utils/response'
 import { verifyToken } from '@/utils/jwt'
 import { Category, TransactionType } from '@/generated/prisma'
 import prisma from '@/lib/prisma'
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
         const user = await verifyToken(request)
 
         if (!user) {
-            return NextResponse.json(
+            return createJsonResponse(
                 ResponseUtil.error('未授权访问'),
                 { status: 401 }
             )
@@ -40,13 +40,13 @@ export async function GET(request: NextRequest) {
             EXPENSE: categories.filter(c => c.type === TransactionType.EXPENSE)
         }
 
-        return NextResponse.json(
+        return createJsonResponse(
             ResponseUtil.success(groupedCategories, '获取分类列表成功')
         )
 
     } catch (error) {
         console.error('获取分类列表错误:', error)
-        return NextResponse.json(
+        return createJsonResponse(
             ResponseUtil.error('服务器内部错误'),
             { status: 500 }
         )

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import jwt from 'jsonwebtoken'
-import { ResponseUtil } from '../../../../utils/response'
+import { ResponseUtil, createJsonResponse } from '../../../../utils/response'
 import prisma from '../../../../lib/prisma'
 
 // 强制动态渲染，因为需要访问请求头和JSON body
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const { code, nickName, avatarUrl } = body
 
     if (!code) {
-      return NextResponse.json(
+      return createJsonResponse(
         ResponseUtil.error('缺少必要参数code'),
         { status: 400 }
       )
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     // 检查微信API调用是否成功
     if (wechatData.errcode) {
       console.error('微信API错误:', wechatData.errmsg)
-      return NextResponse.json(
+      return createJsonResponse(
         ResponseUtil.error(`微信登录失败: ${wechatData.errmsg}`),
         { status: 400 }
       )
@@ -113,13 +113,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json(
+    return createJsonResponse(
       ResponseUtil.success(responseData, '登录成功')
     )
 
   } catch (error) {
     console.error('登录处理错误:', error)
-    return NextResponse.json(
+    return createJsonResponse(
       ResponseUtil.error('服务器内部错误'),
       { status: 500 }
     )
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
 
 // 支持GET请求用于测试
 export async function GET() {
-  return NextResponse.json(
+  return createJsonResponse(
     ResponseUtil.success(null, '微信登录接口正常运行')
   )
 }
