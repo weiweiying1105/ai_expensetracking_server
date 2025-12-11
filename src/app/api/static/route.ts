@@ -4,6 +4,9 @@ import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import prisma from "@/lib/prisma";
 
+// 强制动态渲染，因为需要访问请求头
+export const dynamic = 'force-dynamic';
+
 // 轻量内存缓存（TTL 15s），按用户与月份缓存结果
 const staticCache = new Map<string, { data: any; expiresAt: number }>();
 

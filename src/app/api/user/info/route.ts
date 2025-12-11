@@ -3,6 +3,9 @@ import { ResponseUtil } from '../../../../utils/response'
 import { verifyToken } from '../../../../utils/jwt'
 import prisma from '../../../../lib/prisma'
 
+// 强制动态渲染，因为需要访问请求头
+export const dynamic = 'force-dynamic';
+
 // 获取用户信息
 export async function GET(request: NextRequest) {
   try {

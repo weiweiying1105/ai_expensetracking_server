@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ResponseUtil } from '@/utils/response'
 import { verifyToken } from '@/utils/jwt'
-import { Category } from '@/generated/prisma'
+import { Category, TransactionType } from '@/generated/prisma'
 import prisma from '@/lib/prisma'
+
+// 强制动态渲染，因为需要访问请求头
+export const dynamic = 'force-dynamic';
 
 // 获取分类列表
 export async function GET(request: NextRequest) {
@@ -33,8 +36,8 @@ export async function GET(request: NextRequest) {
 
         // 按类型分组
         const groupedCategories = {
-            INCOME: categories.filter(c => c.type === 'INCOME'),
-            EXPENSE: categories.filter(c => c.type === 'EXPENSE')
+            INCOME: categories.filter(c => c.type === TransactionType.INCOME),
+            EXPENSE: categories.filter(c => c.type === TransactionType.EXPENSE)
         }
 
         return NextResponse.json(
@@ -74,7 +77,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 验证类型
-        if (!['INCOME', 'EXPENSE'].includes(type)) {
+        if (type !== TransactionType.INCOME && type !== TransactionType.EXPENSE) {
             return NextResponse.json(
                 ResponseUtil.error('分类类型必须是 INCOME 或 EXPENSE'),
                 { status: 400 }
@@ -86,7 +89,7 @@ export async function POST(request: NextRequest) {
             where: {
                 userId: user.userId,
                 name: name,
-                type: type
+                type: type as TransactionType
             }
         })
 
