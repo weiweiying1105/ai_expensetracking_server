@@ -33,14 +33,26 @@ interface LoginRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: LoginRequest = await request.json()
-    const { code, nickName, avatarUrl } = body
-
+    // 尝试从请求体获取数据，但如果请求体为空或不是JSON格式，则捕获错误
+    let body: LoginRequest = { code: '' };
+    let code: string | null = null;
+    let nickName: string | undefined;
+    let avatarUrl: string | undefined;
+    
+    try {
+      body = await request.json();
+      ({ code, nickName, avatarUrl } = body);
+    } catch (e) {
+      // JSON解析失败，尝试从查询参数获取code
+      code = request.nextUrl.searchParams.get('code');
+    }
+    
+    // 如果请求体和查询参数中都没有code，则返回错误
     if (!code) {
       return createJsonResponse(
         ResponseUtil.error('缺少必要参数code'),
         { status: 400 }
-      )
+      );
     }
 
     // 第一步：使用code向微信服务器获取openid和session_key
@@ -99,6 +111,7 @@ export async function POST(request: NextRequest) {
     const token = jwt.sign(tokenPayload, JWT_SECRET, {
       expiresIn: JWT_EXPIRES_IN
     })
+    
 
     // 第四步：返回登录成功信息
     const responseData = {
@@ -126,14 +139,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// 支持GET请求用于测试
-export async function GET() {
-  return createJsonResponse(
-    ResponseUtil.success(null, '微信登录接口正常运行')
-  )
-}
-
-// 处理OPTIONS请求，支持CORS跨域
-export async function OPTIONS() {
-  return createJsonResponse(null, { status: 200 })
-}

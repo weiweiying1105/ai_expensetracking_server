@@ -149,7 +149,7 @@ export function createJsonResponse(data: any, options?: ResponseInit) {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*', // 允许所有来源访问，生产环境可配置为特定域名
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', // 允许的HTTP方法
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With', // 允许的请求头
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With,Accept,Origin', // 允许的请求头
       ...options?.headers
     }
   });
