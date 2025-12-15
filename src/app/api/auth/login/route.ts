@@ -84,8 +84,6 @@ export async function POST(request: NextRequest) {
           openId: openid,
           nickName: nickName || '微信用户',
           avatarUrl: avatarUrl || '',
-          currency: 'CNY',
-          timezone: 'Asia/Shanghai'
         }
       })
     } else {
@@ -118,14 +116,12 @@ export async function POST(request: NextRequest) {
         id: user.id,
         nickName: user.nickName,
         avatarUrl: user.avatarUrl,
-        currency: user.currency,
-        timezone: user.timezone
       }
     }
 
     return createJsonResponse(
-      ResponseUtil.success(responseData, '登录成功')
-    )
+   ResponseUtil.success(responseData, '登录成功')
+    )   
 
   } catch (error) {
     console.error('登录处理错误:', error)
