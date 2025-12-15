@@ -1,7 +1,7 @@
 import jwt, { Secret, SignOptions } from 'jsonwebtoken'
+import { StringValue } from 'ms'
 import { NextRequest } from 'next/server'
 import { ResponseCode, ResponseMessage } from './response'
-import prisma from '../lib/prisma'
 const JWT_SECRET = (process.env.JWT_SECRET || 'your-jwt-secret-key') as Secret;
 
 export interface JWTPayload {
@@ -80,7 +80,7 @@ export async function verifyToken(requestOrToken: NextRequest | string): Promise
 // 生成新的token
 export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
   const options: SignOptions = {
-    expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as string
+    expiresIn: '15d'
   }
   return jwt.sign(
     { ...payload, iat: Math.floor(Date.now() / 1000) },

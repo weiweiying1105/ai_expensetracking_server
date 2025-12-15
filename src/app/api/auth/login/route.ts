@@ -15,7 +15,7 @@ const WECHAT_CONFIG = {
 
 // JWT配置
 const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key'
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d' // token有效期7天
+const JWT_EXPIRES_IN =  '15d' // token有效期7天
 
 interface WechatLoginResponse {
   openid: string
