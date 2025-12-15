@@ -80,7 +80,7 @@ export async function verifyToken(requestOrToken: NextRequest | string): Promise
 // 生成新的token
 export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
   const options: SignOptions = {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+    expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as string
   }
   return jwt.sign(
     { ...payload, iat: Math.floor(Date.now() / 1000) },
