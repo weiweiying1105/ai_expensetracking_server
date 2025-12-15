@@ -46,15 +46,24 @@ export async function withAuth(handler: (request: AuthenticatedRequest) => Promi
 }
 
 // 验证JWT token
-export async function verifyToken(request: NextRequest): Promise<JWTPayload | null> {
+export async function verifyToken(requestOrToken: NextRequest | string): Promise<JWTPayload | null> {
   try {
-    const authHeader = request.headers.get('authorization')
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    let token: string | null = null
+    
+    // 如果是NextRequest对象，从请求头获取token
+    if (requestOrToken instanceof NextRequest) {
+      const authHeader = requestOrToken.headers.get('authorization')
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7) // 移除 'Bearer ' 前缀
+      }
+    } else {
+      // 如果直接传入token字符串，使用它
+      token = requestOrToken
+    }
+    
+    if (!token) {
       return null
     }
-
-    const token = authHeader.substring(7) // 移除 'Bearer ' 前缀
 
     // 验证token
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload

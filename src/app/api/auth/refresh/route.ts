@@ -1,13 +1,10 @@
 import { NextRequest } from 'next/server'
-import jwt from 'jsonwebtoken'
 import { ResponseCode, ResponseUtil, createJsonResponse } from '../../../../utils/response'
 import prisma from '../../../../lib/prisma'
+import { generateToken, verifyToken } from '../../../../utils/jwt'
 
 // 强制动态渲染，因为需要访问请求头和JSON body
 export const dynamic = 'force-dynamic';
-
-const JWT_SECRET = process.env.JWT_SECRET as string;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 interface RefreshRequest {
     token?: string
@@ -26,17 +23,9 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        if (!JWT_SECRET) {
-            return createJsonResponse(
-                ResponseUtil.error('服务器未配置JWT密钥'),
-                { status: 500 }
-            )
-        }
         // 验证旧 token
-        let payload: any = null
-        try {
-            payload = jwt.verify(oldToken, JWT_SECRET)
-        } catch (err) {
+        const payload = await verifyToken(oldToken)
+        if (!payload) {
             return createJsonResponse(
                 ResponseUtil.error('旧 token 无效'),
                 { status: 401 }
@@ -63,13 +52,10 @@ export async function POST(request: NextRequest) {
         }
         const newTokenPayload = {
             userId: user.id,
-            openid: user.openId,
-            nickname: user.nickName,
-            iat: Math.floor(Date.now() / 1000),
+            openId: user.openId,
+            nickName: user.nickName || ''
         }
-        const newToken = jwt.sign(newTokenPayload, JWT_SECRET, {
-            expiresIn: JWT_EXPIRES_IN
-        })
+        const newToken = generateToken(newTokenPayload)
         return createJsonResponse(
             ResponseUtil.success({ token: newToken }, '刷新成功'),
             { status: 200 }
