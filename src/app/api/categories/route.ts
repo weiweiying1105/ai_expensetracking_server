@@ -19,14 +19,8 @@ export async function GET(request: NextRequest) {
             )
         }
 
-        // 获取系统默认分类和用户自定义分类
+        // 获取所有分类
         const categories = await prisma.category.findMany({
-            where: {
-                OR: [
-                    { isDefault: true, userId: null }, // 系统默认分类
-                    { userId: user.userId } // 用户自定义分类
-                ]
-            },
             orderBy: [
                 { type: 'asc' }, // 先按类型排序（收入/支出）
                 { sortOrder: 'asc' }, // 再按排序字段
@@ -87,7 +81,6 @@ export async function POST(request: NextRequest) {
         // 检查同名分类是否已存在
         const existingCategory = await prisma.category.findFirst({
             where: {
-                userId: user.userId,
                 name: name,
                 type: type as TransactionType
             }
@@ -108,8 +101,7 @@ export async function POST(request: NextRequest) {
                 color: color || '#DDD',
                 type,
                 sortOrder: sortOrder || 0,
-                isDefault: false,
-                userId: user.userId
+                isDefault: false
             }
         })
 

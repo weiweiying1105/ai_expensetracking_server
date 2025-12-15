@@ -38,7 +38,6 @@ model User {
   
   // 关联数据
   transactions Transaction[]
-  categories   Category[]
   budgets      Budget[]
   chatSessions ChatSession[]
   preferences  UserPreference?
@@ -103,15 +102,12 @@ model Category {
   // 时间戳
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  // 关联数据
-  userId      String?  // null表示系统默认分类
-  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   transactions Transaction[]
   expenses    Expense[]
   
   @@map("categories")
-  @@unique([userId, name, type])
+  @@unique([name, type])
   @@index([type]) // 为type字段添加索引，加速查询
 }
 

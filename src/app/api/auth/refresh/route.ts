@@ -1,13 +1,13 @@
 import { NextRequest } from 'next/server'
 import jwt from 'jsonwebtoken'
-import { ResponseUtil, createJsonResponse } from '../../../../utils/response'
+import { ResponseCode, ResponseUtil, createJsonResponse } from '../../../../utils/response'
 import prisma from '../../../../lib/prisma'
 
 // 强制动态渲染，因为需要访问请求头和JSON body
 export const dynamic = 'force-dynamic';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
-const JWT_EXPIRES_IN = '7d';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 interface RefreshRequest {
     token?: string
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
         if (!user) {
             return createJsonResponse(
                 ResponseUtil.error('用户不存在'),
-                { status: 404 }
+                { status: 404 } // 用户不存在应该返回404 Not Found
             )
         }
         const newTokenPayload = {

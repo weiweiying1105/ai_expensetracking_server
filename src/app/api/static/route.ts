@@ -132,8 +132,8 @@ export async function GET(request: NextRequest) {
         });
 
         // 转换为数组并按金额排序
-        const formattedCategoryStats = Array.from(categoryStatsMap.values())
-            .sort((a, b) => b.amount - a.amount);
+        // const formattedCategoryStats = Array.from(categoryStatsMap.values())
+        //     .sort((a, b) => b.amount - a.amount);
 
         // 按日期统计（YYYY-MM-DD）
         const dailyStatsMap = new Map<string, {
@@ -153,8 +153,8 @@ export async function GET(request: NextRequest) {
         });
 
         // 转换为数组并按日期排序
-        const formattedDailyStats = Array.from(dailyStatsMap.values())
-            .sort((a, b) => a.date.localeCompare(b.date));
+        // const formattedDailyStats = Array.from(dailyStatsMap.values())
+        //     .sort((a, b) => a.date.localeCompare(b.date));
 
         // 计算平均每日支出
         const daysInMonth = new Date(year, monthNum, 0).getDate();
@@ -167,15 +167,15 @@ export async function GET(request: NextRequest) {
                 totalCount,
                 averageDaily
             },
-            categoryStats: formattedCategoryStats,
-            dailyStats: formattedDailyStats,
-            // expenses: expenses.map((expense: ExpenseRow) => ({
-            //     id: expense.id,
-            //     amount: Number(expense.amount),
-            //     description: expense.description,
-            //     category: expense.category,
-            //     date: expense.date,
-            // }))
+            // categoryStats: formattedCategoryStats,
+            // dailyStats: formattedDailyStats,
+            expenses: expenses.map((expense: ExpenseRow) => ({
+                id: expense.id,
+                amount: Number(expense.amount),
+                description: expense.description,
+                category: expense.category,
+                date: expense.date,
+            }))
         };
 
         // 写入缓存（TTL 15s，当月不写缓存）

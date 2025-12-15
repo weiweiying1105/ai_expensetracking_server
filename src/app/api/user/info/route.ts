@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { ResponseUtil, createJsonResponse } from '../../../../utils/response'
+import { ResponseCode, ResponseUtil, createJsonResponse } from '../../../../utils/response'
 import { verifyToken } from '../../../../utils/jwt'
 import prisma from '../../../../lib/prisma'
 
@@ -34,8 +34,7 @@ export async function GET(request: NextRequest) {
 
     if (!userInfo) {
       return createJsonResponse(
-        ResponseUtil.error('用户不存在'),
-        { status: 404 }
+        ResponseUtil.success(null,'用户不存在',ResponseCode.USER_NOT_FOUND),
       )
     }
 
@@ -60,7 +59,7 @@ export async function PUT(request: NextRequest) {
     if (!user) {
       return createJsonResponse(
         ResponseUtil.error('未授权访问'),
-        { status: 401 }
+        { status: 401 } // 使用正确的未授权状态码
       )
     }
 
