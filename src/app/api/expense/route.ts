@@ -4,7 +4,7 @@ import { isCategoryInDatabase, quickAnalyzeExpense } from "@/utils/expense-patte
 import { NextRequest } from "next/server";
 import { OpenAI } from "openai";
 import prisma from "@/lib/prisma";
-import { TransactionType } from "@prisma/client";
+import { TransactionType } from "@/generated/prisma";
 import { createExpenseCategory, getExpenseAllCategory } from "../categories";
 
 // 强制动态渲染，因为需要访问请求头
