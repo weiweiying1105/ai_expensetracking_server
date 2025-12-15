@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     const tokenPayload = {
       userId: user.id,
       openId: user.openId,
-      nickName: user.nickName
+      nickName: user.nickName || ''
     }
 
     const token = generateToken(tokenPayload)
