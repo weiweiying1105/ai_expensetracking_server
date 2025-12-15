@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
-import jwt from 'jsonwebtoken'
 import { ResponseUtil, createJsonResponse } from '../../../../utils/response'
 import prisma from '../../../../lib/prisma'
+import { generateToken } from '../../../../utils/jwt'
 
 // 强制动态渲染，因为需要访问请求头和JSON body
 export const dynamic = 'force-dynamic';
@@ -104,13 +104,10 @@ export async function POST(request: NextRequest) {
     const tokenPayload = {
       userId: user.id,
       openId: user.openId,
-      nickName: user.nickName,
-      iat: Math.floor(Date.now() / 1000) // 签发时间
+      nickName: user.nickName
     }
 
-    const token = jwt.sign(tokenPayload, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN
-    })
+    const token = generateToken(tokenPayload)
     
 
     // 第四步：返回登录成功信息

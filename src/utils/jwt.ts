@@ -73,7 +73,9 @@ export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string 
   return jwt.sign(
     { ...payload, iat: Math.floor(Date.now() / 1000) },
     JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: 
+      process.env.JWT_EXPIRES_IN || '7d'
+     }
   )
 }
 
