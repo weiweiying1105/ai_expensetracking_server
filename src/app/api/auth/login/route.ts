@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     if (wechatData.errcode) {
       console.error('微信API错误:', wechatData.errmsg)
       return createJsonResponse(
-        ResponseUtil.error(`微信登录失败: ${wechatData.errmsg}`),
+        ResponseUtil.error(`微信登录失败: ${wechatData.errmsg},,,${WECHAT_CONFIG.appId},,,${WECHAT_CONFIG.appSecret}`,),
         { status: 400 }
       )
     }
