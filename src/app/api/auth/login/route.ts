@@ -15,7 +15,7 @@ const WECHAT_CONFIG = {
 
 // JWT配置
 const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key'
-const JWT_EXPIRES_IN =  '15d' // token有效期7天
+const JWT_EXPIRES_IN = '15d' // token有效期7天
 
 interface WechatLoginResponse {
   openid: string
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     let code: string | null = null;
     let nickName: string | undefined;
     let avatarUrl: string | undefined;
-    
+
     try {
       body = await request.json();
       ({ code, nickName, avatarUrl } = body);
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       // JSON解析失败，尝试从查询参数获取code
       code = request.nextUrl.searchParams.get('code');
     }
-    
+
     // 如果请求体和查询参数中都没有code，则返回错误
     if (!code) {
       return createJsonResponse(
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     // 第一步：使用code向微信服务器获取openid和session_key
     const wechatUrl = `https://api.weixin.qq.com/sns/jscode2session?appid=${WECHAT_CONFIG.appId}&secret=${WECHAT_CONFIG.appSecret}&js_code=${code}&grant_type=${WECHAT_CONFIG.grantType}`
-    
+
     const wechatResponse = await fetch(wechatUrl)
     const wechatData: WechatLoginResponse = await wechatResponse.json()
 
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     if (wechatData.errcode) {
       console.error('微信API错误:', wechatData.errmsg)
       return createJsonResponse(
-        ResponseUtil.error(`微信登录失败: ${wechatData.errmsg}`),
+        ResponseUtil.error(`微信登录失败: ${wechatData.errmsg},${wechatData.errcode},${WECHAT_CONFIG.appId},${WECHAT_CONFIG.appSecret},$`),
         { status: 400 }
       )
     }
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     }
 
     const token = generateToken(tokenPayload)
-    
+
 
     // 第四步：返回登录成功信息
     const responseData = {
@@ -120,8 +120,8 @@ export async function POST(request: NextRequest) {
     }
 
     return createJsonResponse(
-   ResponseUtil.success(responseData, '登录成功')
-    )   
+      ResponseUtil.success(responseData, '登录成功')
+    )
 
   } catch (error) {
     console.error('登录处理错误:', error)
