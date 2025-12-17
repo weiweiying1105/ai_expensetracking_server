@@ -7,7 +7,6 @@ const JWT_SECRET = (process.env.JWT_SECRET || 'your-jwt-secret-key') as Secret;
 export interface JWTPayload {
   userId: string
   openId: string
-  nickName: string
   iat: number
   exp: number
 }
@@ -49,19 +48,23 @@ export async function withAuth(handler: (request: AuthenticatedRequest) => Promi
 export async function verifyToken(requestOrToken: NextRequest | string): Promise<JWTPayload | null> {
   try {
     let token: string | null = null
-    
-    // 如果是NextRequest对象，从请求头获取token
-    if (requestOrToken instanceof NextRequest) {
-      const authHeader = requestOrToken.headers.get('authorization')
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.substring(7) // 移除 'Bearer ' 前缀
-      }
-    } else {
-      // 如果直接传入token字符串，使用它
+
+    // 优先：直接字符串
+    if (typeof requestOrToken === 'string') {
       token = requestOrToken
+    } else {
+      // 请求对象：从 Authorization 或 Cookie 获取
+      const authHeader = requestOrToken.headers.get('authorization') || ''
+      if (/^Bearer\s+/i.test(authHeader)) {
+        token = authHeader.replace(/^Bearer\s+/i, '')
+      }
+      if (!token) {
+        const cookieToken = requestOrToken.cookies?.get?.('token')?.value
+        if (cookieToken) token = cookieToken
+      }
     }
-    
-    if (!token) {
+
+    if (!token || typeof token !== 'string' || token.trim() === '') {
       return null
     }
 
@@ -97,8 +100,7 @@ export function refreshToken(oldToken: string): string | null {
     // 生成新token
     return generateToken({
       userId: decoded.userId,
-      openId: decoded.openId,
-      nickName: decoded.nickName
+      openId: decoded.openId
     })
 
   } catch {

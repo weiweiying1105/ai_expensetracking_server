@@ -101,8 +101,7 @@ export async function POST(request: NextRequest) {
     // 第三步：生成JWT token
     const tokenPayload = {
       userId: user.id,
-      openId: user.openId,
-      nickName: user.nickName || ''
+      openId: user.openId
     }
 
     const token = generateToken(tokenPayload)

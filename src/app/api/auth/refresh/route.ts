@@ -52,8 +52,7 @@ export async function POST(request: NextRequest) {
         }
         const newTokenPayload = {
             userId: user.id,
-            openId: user.openId,
-            nickName: user.nickName || ''
+            openId: user.openId
         }
         const newToken = generateToken(newTokenPayload)
         return createJsonResponse(
