@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { ResponseUtil, createJsonResponse } from '../../../../utils/response'
 import prisma from '../../../../lib/prisma'
 import { generateToken } from '../../../../utils/jwt'
+import crypto from 'crypto'
 
 // 强制动态渲染，因为需要访问请求头和JSON body
 export const dynamic = 'force-dynamic';
@@ -58,14 +59,21 @@ export async function POST(request: NextRequest) {
     // 第一步：使用code向微信服务器获取openid和session_key
     const wechatUrl = `https://api.weixin.qq.com/sns/jscode2session?appid=${WECHAT_CONFIG.appId}&secret=${WECHAT_CONFIG.appSecret}&js_code=${code}&grant_type=${WECHAT_CONFIG.grantType}`
     
+    console.log('微信登录请求URL:', wechatUrl)
+    console.log('使用的appId:', WECHAT_CONFIG.appId)
+    console.log('使用的appSecret:', WECHAT_CONFIG.appSecret)
+    console.log('使用的code:', code)
+    
     const wechatResponse = await fetch(wechatUrl)
     const wechatData: WechatLoginResponse = await wechatResponse.json()
+    
+    console.log('微信API响应:', wechatData)
 
     // 检查微信API调用是否成功
     if (wechatData.errcode) {
       console.error('微信API错误:', wechatData.errmsg)
       return createJsonResponse(
-        ResponseUtil.error(`微信登录失败: ${wechatData.errmsg},,,${WECHAT_CONFIG.appId},,,${WECHAT_CONFIG.appSecret}`,),
+        ResponseUtil.error(`微信登录失败: ${wechatData.errmsg}, rid: ${crypto.randomUUID()}`),
         { status: 400 }
       )
     }
