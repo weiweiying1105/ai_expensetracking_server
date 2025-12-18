@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
                     user: {
                         connect: { id: user.userId }
                     },
-                    amount: item.amount.toFixed(2),
+                    amount: parseFloat(((item.amount*100)/100).toFixed(2)),
                     description: item.description,
                     date: date ? date : new Date().toISOString(),
                     category: finalCategoryId ? { connect: { id: finalCategoryId } } : undefined,
