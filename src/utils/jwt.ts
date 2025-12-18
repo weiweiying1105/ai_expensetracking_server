@@ -46,33 +46,47 @@ export async function withAuth(handler: (request: AuthenticatedRequest) => Promi
 }
 
 // 验证JWT token
-export async function verifyToken(requestOrToken: NextRequest | string): Promise<JWTPayload | null> {
+export async function verifyToken(requestOrToken: NextRequest ): Promise<JWTPayload | null> {
   try {
     let token: string | null = null
     
     // 如果是NextRequest对象，从请求头获取token
-    if (requestOrToken instanceof NextRequest) {
-      const authHeader = requestOrToken.headers.get('authorization')
+  
+      const authHeader = requestOrToken?.headers.get('authorization')
+      console.log('Authorization header:', authHeader)
       if (authHeader && authHeader.startsWith('Bearer ')) {
         token = authHeader.substring(7) // 移除 'Bearer ' 前缀
+        console.log('Extracted token:', token)
+      } else {
+        console.log('Invalid authorization header format')
       }
-    } else {
-      // 如果直接传入token字符串，使用它
-      token = requestOrToken
-    }
+   
     
     if (!token) {
+      console.log('No token found')
       return null
     }
 
+    // Ensure token is a string
+    if (typeof token !== 'string') {
+      console.error('Token is not a string:', token)
+      return null
+    }
+
+    console.log('JWT_SECRET used for verification:', JWT_SECRET)
+    console.log('JWT_SECRET length:', typeof JWT_SECRET === 'string' ? JWT_SECRET.length : 'N/A')
+    
     // 验证token
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload
+    console.log('Token verification successful, decoded:', decoded)
 
     // 只进行token验证，不额外查询数据库，减少性能开销
     return decoded
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Token验证失败:', error)
+    console.error('Error name:', error.name)
+    console.error('Error message:', error.message)
     return null
   }
 }
@@ -80,7 +94,7 @@ export async function verifyToken(requestOrToken: NextRequest | string): Promise
 // 生成新的token
 export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
   const options: SignOptions = {
-    expiresIn: '15d'
+    expiresIn: (process.env.JWT_EXPIRES_IN || '15d') as StringValue
   }
   return jwt.sign(
     { ...payload, iat: Math.floor(Date.now() / 1000) },
