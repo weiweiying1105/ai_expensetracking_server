@@ -1,7 +1,7 @@
 import { verifyToken } from "@/utils/jwt";
 import { ResponseUtil, createJsonResponse } from "@/utils/response";
 import { NextRequest } from "next/server";
-import prisma  from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 
 // 强制动态渲染，因为需要访问请求头
 export const dynamic = 'force-dynamic';
@@ -16,8 +16,9 @@ export async function GET(request: NextRequest) {
                 { status: 401 }
             );
         }
-        const {searchParams} = new URL(request.url);
+        const { searchParams } = new URL(request.url);
         const dateParam = searchParams.get('month'); // 支持格式: YYYY-MM 或 YYYY-MM-DD
+        const sortBy = searchParams.get('sort') || '';
         if (!dateParam) {
             return createJsonResponse(
                 ResponseUtil.error('缺少日期参数，格式应为: YYYY-MM 或 YYYY-MM-DD'),
@@ -37,10 +38,10 @@ export async function GET(request: NextRequest) {
 
         const [year, monthNum] = match[1].split('-').map(Number);
         const day = match[2] ? Number(match[2]) : null;
-        
+
         let startDate: Date;
         let endDate: Date;
-        
+
         if (day) {
             // YYYY-MM-DD 格式：查询当天
             startDate = new Date(year, monthNum - 1, day);
@@ -50,6 +51,7 @@ export async function GET(request: NextRequest) {
             startDate = new Date(year, monthNum - 1, 1);
             endDate = new Date(year, monthNum, 1);
         }
+
         const response = await prisma.expense.findMany({
             where: {
                 userId: user.userId,
@@ -73,11 +75,10 @@ export async function GET(request: NextRequest) {
                     }
                 }
             },
-            orderBy: {
-                date: 'desc'
-            }
+            // sort=desc: 按金额从大到小；空字符串: 按日期（最新在前）
+            orderBy: sortBy === 'desc' ? { amount: 'desc' as const } : { date: 'desc' as const }
         });
-         return createJsonResponse(
+        return createJsonResponse(
             ResponseUtil.success(response)
         );
     } catch (error) {

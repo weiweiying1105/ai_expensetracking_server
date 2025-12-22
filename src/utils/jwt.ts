@@ -1,5 +1,4 @@
 import jwt, { Secret, SignOptions } from 'jsonwebtoken'
-import { StringValue } from 'ms'
 import { NextRequest } from 'next/server'
 import { ResponseCode, ResponseMessage } from './response'
 const JWT_SECRET = (process.env.JWT_SECRET || 'your-jwt-secret-key') as Secret;
