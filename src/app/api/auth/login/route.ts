@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { ResponseUtil, createJsonResponse } from '../../../../utils/response'
 import prisma from '../../../../lib/prisma'
 import { generateToken } from '../../../../utils/jwt'
+import crypto from 'crypto'
 
 // 强制动态渲染，因为需要访问请求头和JSON body
 export const dynamic = 'force-dynamic';
@@ -57,9 +58,10 @@ export async function POST(request: NextRequest) {
 
     // 第一步：使用code向微信服务器获取openid和session_key
     const wechatUrl = `https://api.weixin.qq.com/sns/jscode2session?appid=${WECHAT_CONFIG.appId}&secret=${WECHAT_CONFIG.appSecret}&js_code=${code}&grant_type=${WECHAT_CONFIG.grantType}`
-
     const wechatResponse = await fetch(wechatUrl)
     const wechatData: WechatLoginResponse = await wechatResponse.json()
+    
+    console.log('微信API响应:', wechatData)
 
     // 检查微信API调用是否成功
     if (wechatData.errcode) {

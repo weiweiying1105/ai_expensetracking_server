@@ -2,7 +2,7 @@ import jwt, { Secret, SignOptions } from 'jsonwebtoken'
 import { NextRequest } from 'next/server'
 import { ResponseCode, ResponseMessage } from './response'
 const JWT_SECRET = (process.env.JWT_SECRET || 'your-jwt-secret-key') as Secret;
-
+import { StringValue } from 'ms'
 export interface JWTPayload {
   userId: string
   openId: string
@@ -44,7 +44,7 @@ export async function withAuth(handler: (request: AuthenticatedRequest) => Promi
 }
 
 // 验证JWT token
-export async function verifyToken(requestOrToken: NextRequest | string): Promise<JWTPayload | null> {
+export async function verifyToken(requestOrToken: NextRequest | string ): Promise<JWTPayload | null> {
   try {
     let token: string | null = null
 
@@ -67,14 +67,26 @@ export async function verifyToken(requestOrToken: NextRequest | string): Promise
       return null
     }
 
+    // Ensure token is a string
+    if (typeof token !== 'string') {
+      console.error('Token is not a string:', token)
+      return null
+    }
+
+    console.log('JWT_SECRET used for verification:', JWT_SECRET)
+    console.log('JWT_SECRET length:', typeof JWT_SECRET === 'string' ? JWT_SECRET.length : 'N/A')
+    
     // 验证token
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload
+    console.log('Token verification successful, decoded:', decoded)
 
     // 只进行token验证，不额外查询数据库，减少性能开销
     return decoded
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Token验证失败:', error)
+    console.error('Error name:', error.name)
+    console.error('Error message:', error.message)
     return null
   }
 }
@@ -82,7 +94,7 @@ export async function verifyToken(requestOrToken: NextRequest | string): Promise
 // 生成新的token
 export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
   const options: SignOptions = {
-    expiresIn: '15d'
+    expiresIn: (process.env.JWT_EXPIRES_IN || '15d') as StringValue
   }
   return jwt.sign(
     { ...payload, iat: Math.floor(Date.now() / 1000) },

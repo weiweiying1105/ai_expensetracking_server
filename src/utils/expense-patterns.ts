@@ -14,7 +14,7 @@ export interface ExpensePattern {
 export const expensePatterns: ExpensePattern[] = [
     // 模式1: "午饭30元" "晚餐50" "早餐15块"
     {
-        regex: /^(早餐|午餐|午饭|晚餐|晚饭|夜宵|早饭|早饭钱|午餐费|晚餐费)\s*(\d+(?:\.\d+)?)\s*[元块钱]?$/,
+        regex: /^(早餐|午餐|午饭|晚餐|晚饭|夜宵|早饭|早饭钱|午餐费|晚餐费)\s*(\d+(?:\.\d+)?)(?:\s*[元块钱]?)?$/,
         category: '餐饮',
         getResult: (match: RegExpMatchArray) => ({
             amount: parseFloat(match[2]),
@@ -23,9 +23,20 @@ export const expensePatterns: ExpensePattern[] = [
             confidence: 0.95
         })
     },
-    // 模式2: "打车15元" "滴滴20" "出租车30" "共享单车5元"
+    // 模式2: "30元午饭" "50晚餐" "15块早餐"（反向模式）
     {
-        regex: /^(打车|滴滴|出租车|网约车|地铁|公交|交通|共享单车|单车|摩拜|哈啰|青桔|美团单车|ofo|地铁票|公交车票|车票|车票钱)\s*(\d+(?:\.\d+)?)\s*[元块钱]?$/,
+        regex: /^(\d+(?:\.\d+)?)(?:\s*[元块钱]?)\s*(早餐|午餐|午饭|晚餐|晚饭|夜宵|早饭|早饭钱|午餐费|晚餐费)$/,
+        category: '餐饮',
+        getResult: (match: RegExpMatchArray) => ({
+            amount: parseFloat(match[1]),
+            description: match[2],
+            tags: [match[2], '餐饮'],
+            confidence: 0.95
+        })
+    },
+    // 模式3: "打车15元" "滴滴20" "出租车30" "共享单车5元"
+    {
+        regex: /^(打车|滴滴|出租车|网约车|地铁|公交|交通|共享单车|单车|摩拜|哈啰|青桔|美团单车|ofo|地铁票|公交车票|车票|车票钱)\s*(\d+(?:\.\d+)?)(?:\s*[元块钱]?)?$/,
         category: '交通',
         getResult: (match: RegExpMatchArray) => ({
             amount: parseFloat(match[2]),
@@ -34,9 +45,20 @@ export const expensePatterns: ExpensePattern[] = [
             confidence: 0.9
         })
     },
-    // 模式3: "咖啡25" "奶茶18" "星巴克35"
+    // 模式4: "15元打车" "20滴滴" "30出租车"（反向模式）
     {
-        regex: /^(咖啡|奶茶|饮料|可乐|果汁|星巴克|瑞幸|茶|奶茶店|咖啡店|饮品|汽水|雪碧|芬达|王老吉|冰红茶)\s*(\d+(?:\.\d+)?)\s*[元块钱]?$/,
+        regex: /^(\d+(?:\.\d+)?)(?:\s*[元块钱]?)\s*(打车|滴滴|出租车|网约车|地铁|公交|交通|共享单车|单车|摩拜|哈啰|青桔|美团单车|ofo|地铁票|公交车票|车票|车票钱)$/,
+        category: '交通',
+        getResult: (match: RegExpMatchArray) => ({
+            amount: parseFloat(match[1]),
+            description: match[2].includes('单车') || ['摩拜', '哈啰', '青桔', '美团单车', 'ofo'].includes(match[2]) ? '共享单车' : match[2],
+            tags: [match[2].includes('单车') || ['摩拜', '哈啰', '青桔', '美团单车', 'ofo'].includes(match[2]) ? '共享单车' : match[2], '交通'],
+            confidence: 0.9
+        })
+    },
+    // 模式5: "咖啡25" "奶茶18" "星巴克35"
+    {
+        regex: /^(咖啡|奶茶|饮料|可乐|果汁|星巴克|瑞幸|茶|奶茶店|咖啡店|饮品|汽水|雪碧|芬达|王老吉|冰红茶|外卖|美团外卖|饿了么|肯德基|麦当劳|必胜客|汉堡|披萨)\s*(\d+(?:\.\d+)?)(?:\s*[元块钱]?)?$/,
         category: '餐饮',
         getResult: (match: RegExpMatchArray) => ({
             amount: parseFloat(match[2]),
@@ -45,9 +67,20 @@ export const expensePatterns: ExpensePattern[] = [
             confidence: 0.9
         })
     },
-    // 模式4: "超市购物100" "买菜50" "水果30"
+    // 模式6: "25咖啡" "18奶茶" "35星巴克"（反向模式）
     {
-        regex: /^(超市|买菜|水果|蔬菜|购物|日用品|生活用品|食品|零食|生鲜|杂货|便利店|小卖部)\s*(\d+(?:\.\d+)?)\s*[元块钱]?$/,
+        regex: /^(\d+(?:\.\d+)?)(?:\s*[元块钱]?)\s*(咖啡|奶茶|饮料|可乐|果汁|星巴克|瑞幸|茶|奶茶店|咖啡店|饮品|汽水|雪碧|芬达|王老吉|冰红茶|外卖|美团外卖|饿了么|肯德基|麦当劳|必胜客|汉堡|披萨)$/,
+        category: '餐饮',
+        getResult: (match: RegExpMatchArray) => ({
+            amount: parseFloat(match[1]),
+            description: match[2],
+            tags: [match[2], '饮品'],
+            confidence: 0.9
+        })
+    },
+    // 模式7: "超市购物100" "买菜50" "水果30"
+    {
+        regex: /^(超市|买菜|水果|蔬菜|购物|日用品|生活用品|食品|零食|生鲜|杂货|便利店|小卖部|淘宝|京东|拼多多|天猫|网购|电商)\s*(\d+(?:\.\d+)?)(?:\s*[元块钱]?)?$/,
         category: '购物',
         getResult: (match: RegExpMatchArray) => ({
             amount: parseFloat(match[2]),
@@ -56,9 +89,20 @@ export const expensePatterns: ExpensePattern[] = [
             confidence: 0.85
         })
     },
-    // 模式5: "加油200" "油费150"
+    // 模式8: "100超市" "50买菜" "30水果"（反向模式）
     {
-        regex: /^(加油|油费|汽油|柴油|中石化|中石油|加油站|油钱)\s*(\d+(?:\.\d+)?)\s*[元块钱]?$/,
+        regex: /^(\d+(?:\.\d+)?)(?:\s*[元块钱]?)\s*(超市|买菜|水果|蔬菜|购物|日用品|生活用品|食品|零食|生鲜|杂货|便利店|小卖部|淘宝|京东|拼多多|天猫|网购|电商)$/,
+        category: '购物',
+        getResult: (match: RegExpMatchArray) => ({
+            amount: parseFloat(match[1]),
+            description: match[2],
+            tags: [match[2], '生活用品'],
+            confidence: 0.85
+        })
+    },
+    // 模式9: "加油200" "油费150"
+    {
+        regex: /^(加油|油费|汽油|柴油|中石化|中石油|加油站|油钱)\s*(\d+(?:\.\d+)?)(?:\s*[元块钱]?)?$/,
         category: '交通',
         getResult: (match: RegExpMatchArray) => ({
             amount: parseFloat(match[2]),
@@ -67,9 +111,20 @@ export const expensePatterns: ExpensePattern[] = [
             confidence: 0.95
         })
     },
-    // 模式6: "电影票45" "看电影60"
+    // 模式10: "200加油" "150油费"（反向模式）
     {
-        regex: /^(电影|看电影|电影票|娱乐|电影院|观影|电影钱|电影票钱)\s*(\d+(?:\.\d+)?)\s*[元块钱]?$/,
+        regex: /^(\d+(?:\.\d+)?)(?:\s*[元块钱]?)\s*(加油|油费|汽油|柴油|中石化|中石油|加油站|油钱)$/,
+        category: '交通',
+        getResult: (match: RegExpMatchArray) => ({
+            amount: parseFloat(match[1]),
+            description: '加油',
+            tags: ['加油', '汽车'],
+            confidence: 0.95
+        })
+    },
+    // 模式11: "电影票45" "看电影60"
+    {
+        regex: /^(电影|看电影|电影票|娱乐|电影院|观影|电影钱|电影票钱)\s*(\d+(?:\.\d+)?)(?:\s*[元块钱]?)?$/,
         category: '娱乐',
         getResult: (match: RegExpMatchArray) => ({
             amount: parseFloat(match[2]),
@@ -78,9 +133,20 @@ export const expensePatterns: ExpensePattern[] = [
             confidence: 0.9
         })
     },
-    // 模式7: "彩票10元" "买彩票20" "福利彩票50"
+    // 模式12: "45电影票" "60看电影"（反向模式）
     {
-        regex: /^(彩票|买彩票|福利彩票|体育彩票|刮刮乐|双色球|大乐透|彩票钱)\s*(\d+(?:\.\d+)?)\s*[元块钱]?$/,
+        regex: /^(\d+(?:\.\d+)?)(?:\s*[元块钱]?)\s*(电影|看电影|电影票|娱乐|电影院|观影|电影钱|电影票钱)$/,
+        category: '娱乐',
+        getResult: (match: RegExpMatchArray) => ({
+            amount: parseFloat(match[1]),
+            description: '电影',
+            tags: ['电影', '娱乐'],
+            confidence: 0.9
+        })
+    },
+    // 模式13: "彩票10元" "买彩票20" "福利彩票50"
+    {
+        regex: /^(彩票|买彩票|福利彩票|体育彩票|刮刮乐|双色球|大乐透|彩票钱)\s*(\d+(?:\.\d+)?)(?:\s*[元块钱]?)?$/,
         category: '娱乐',
         getResult: (match: RegExpMatchArray) => ({
             amount: parseFloat(match[2]),
@@ -89,9 +155,20 @@ export const expensePatterns: ExpensePattern[] = [
             confidence: 0.95
         })
     },
-    // 模式8: "水电费100" "电费50" "水费30"
+    // 模式14: "10元彩票" "20买彩票" "50福利彩票"（反向模式）
     {
-        regex: /^(水电费|电费|水费|燃气费|煤气费|水电煤气费|物业费|房租|租金)\s*(\d+(?:\.\d+)?)\s*[元块钱]?$/,
+        regex: /^(\d+(?:\.\d+)?)(?:\s*[元块钱]?)\s*(彩票|买彩票|福利彩票|体育彩票|刮刮乐|双色球|大乐透|彩票钱)$/,
+        category: '娱乐',
+        getResult: (match: RegExpMatchArray) => ({
+            amount: parseFloat(match[1]),
+            description: '彩票',
+            tags: ['彩票', '娱乐'],
+            confidence: 0.95
+        })
+    },
+    // 模式15: "水电费100" "电费50" "水费30"
+    {
+        regex: /^(水电费|电费|水费|燃气费|煤气费|水电煤气费|物业费|房租|租金)\s*(\d+(?:\.\d+)?)(?:\s*[元块钱]?)?$/,
         category: '生活缴费',
         getResult: (match: RegExpMatchArray) => ({
             amount: parseFloat(match[2]),
@@ -100,9 +177,20 @@ export const expensePatterns: ExpensePattern[] = [
             confidence: 0.95
         })
     },
-    // 模式9: "医疗费100" "买药50" "看病300"
+    // 模式16: "100水电费" "50电费" "30水费"（反向模式）
     {
-        regex: /^(医疗费|买药|看病|医院|挂号|药费|医疗|体检|检查费)\s*(\d+(?:\.\d+)?)\s*[元块钱]?$/,
+        regex: /^(\d+(?:\.\d+)?)(?:\s*[元块钱]?)\s*(水电费|电费|水费|燃气费|煤气费|水电煤气费|物业费|房租|租金)$/,
+        category: '生活缴费',
+        getResult: (match: RegExpMatchArray) => ({
+            amount: parseFloat(match[1]),
+            description: match[2],
+            tags: [match[2], '生活缴费'],
+            confidence: 0.95
+        })
+    },
+    // 模式17: "医疗费100" "买药50" "看病300"
+    {
+        regex: /^(医疗费|买药|看病|医院|挂号|药费|医疗|体检|检查费)\s*(\d+(?:\.\d+)?)(?:\s*[元块钱]?)?$/,
         category: '医疗',
         getResult: (match: RegExpMatchArray) => ({
             amount: parseFloat(match[2]),
@@ -111,9 +199,20 @@ export const expensePatterns: ExpensePattern[] = [
             confidence: 0.95
         })
     },
-    // 模式10: "学费1000" "书本费50" "培训费300"
+    // 模式18: "100医疗费" "50买药" "300看病"（反向模式）
     {
-        regex: /^(学费|书本费|培训费|教育费|学习费|课程费|辅导费)\s*(\d+(?:\.\d+)?)\s*[元块钱]?$/,
+        regex: /^(\d+(?:\.\d+)?)(?:\s*[元块钱]?)\s*(医疗费|买药|看病|医院|挂号|药费|医疗|体检|检查费)$/,
+        category: '医疗',
+        getResult: (match: RegExpMatchArray) => ({
+            amount: parseFloat(match[1]),
+            description: match[2],
+            tags: [match[2], '医疗'],
+            confidence: 0.95
+        })
+    },
+    // 模式19: "学费1000" "书本费50" "培训费300"
+    {
+        regex: /^(学费|书本费|培训费|教育费|学习费|课程费|辅导费)\s*(\d+(?:\.\d+)?)(?:\s*[元块钱]?)?$/,
         category: '教育',
         getResult: (match: RegExpMatchArray) => ({
             amount: parseFloat(match[2]),
@@ -122,9 +221,20 @@ export const expensePatterns: ExpensePattern[] = [
             confidence: 0.95
         })
     },
-    // 模式11: "电话费50" "手机费30" "网费100"
+    // 模式20: "1000学费" "50书本费" "300培训费"（反向模式）
     {
-        regex: /^(电话费|手机费|网费|宽带费|通讯费|话费)\s*(\d+(?:\.\d+)?)\s*[元块钱]?$/,
+        regex: /^(\d+(?:\.\d+)?)(?:\s*[元块钱]?)\s*(学费|书本费|培训费|教育费|学习费|课程费|辅导费)$/,
+        category: '教育',
+        getResult: (match: RegExpMatchArray) => ({
+            amount: parseFloat(match[1]),
+            description: match[2],
+            tags: [match[2], '教育'],
+            confidence: 0.95
+        })
+    },
+    // 模式21: "电话费50" "手机费30" "网费100"
+    {
+        regex: /^(电话费|手机费|网费|宽带费|通讯费|话费)\s*(\d+(?:\.\d+)?)(?:\s*[元块钱]?)?$/,
         category: '通讯',
         getResult: (match: RegExpMatchArray) => ({
             amount: parseFloat(match[2]),
@@ -133,9 +243,20 @@ export const expensePatterns: ExpensePattern[] = [
             confidence: 0.95
         })
     },
-    // 模式12: "衣服100" "鞋子50" "裤子30"
+    // 模式22: "50电话费" "30手机费" "100网费"（反向模式）
     {
-        regex: /^(衣服|鞋子|裤子|裙子|外套|衬衫|T恤|服装|服饰|衣帽)\s*(\d+(?:\.\d+)?)\s*[元块钱]?$/,
+        regex: /^(\d+(?:\.\d+)?)(?:\s*[元块钱]?)\s*(电话费|手机费|网费|宽带费|通讯费|话费)$/,
+        category: '通讯',
+        getResult: (match: RegExpMatchArray) => ({
+            amount: parseFloat(match[1]),
+            description: match[2],
+            tags: [match[2], '通讯'],
+            confidence: 0.95
+        })
+    },
+    // 模式23: "衣服100" "鞋子50" "裤子30"
+    {
+        regex: /^(衣服|鞋子|裤子|裙子|外套|衬衫|T恤|服装|服饰|衣帽)\s*(\d+(?:\.\d+)?)(?:\s*[元块钱]?)?$/,
         category: '购物',
         getResult: (match: RegExpMatchArray) => ({
             amount: parseFloat(match[2]),
@@ -144,9 +265,20 @@ export const expensePatterns: ExpensePattern[] = [
             confidence: 0.95
         })
     },
-    // 模式13: "健身50" "健身房100" "瑜伽30"
+    // 模式24: "100衣服" "50鞋子" "30裤子"（反向模式）
     {
-        regex: /^(健身|健身房|瑜伽|运动|锻炼|健身卡|运动器材)\s*(\d+(?:\.\d+)?)\s*[元块钱]?$/,
+        regex: /^(\d+(?:\.\d+)?)(?:\s*[元块钱]?)\s*(衣服|鞋子|裤子|裙子|外套|衬衫|T恤|服装|服饰|衣帽)$/,
+        category: '购物',
+        getResult: (match: RegExpMatchArray) => ({
+            amount: parseFloat(match[1]),
+            description: match[2],
+            tags: [match[2], '购物'],
+            confidence: 0.95
+        })
+    },
+    // 模式25: "健身50" "健身房100" "瑜伽30"
+    {
+        regex: /^(健身|健身房|瑜伽|运动|锻炼|健身卡|运动器材)\s*(\d+(?:\.\d+)?)(?:\s*[元块钱]?)?$/,
         category: '运动',
         getResult: (match: RegExpMatchArray) => ({
             amount: parseFloat(match[2]),
@@ -155,9 +287,20 @@ export const expensePatterns: ExpensePattern[] = [
             confidence: 0.95
         })
     },
-    // 模式14: "礼物50" "红包100" "礼金200"
+    // 模式26: "50健身" "100健身房" "30瑜伽"（反向模式）
     {
-        regex: /^(礼物|红包|礼金|压岁钱|份子钱|人情)\s*(\d+(?:\.\d+)?)\s*[元块钱]?$/,
+        regex: /^(\d+(?:\.\d+)?)(?:\s*[元块钱]?)\s*(健身|健身房|瑜伽|运动|锻炼|健身卡|运动器材)$/,
+        category: '运动',
+        getResult: (match: RegExpMatchArray) => ({
+            amount: parseFloat(match[1]),
+            description: match[2],
+            tags: [match[2], '运动'],
+            confidence: 0.95
+        })
+    },
+    // 模式27: "礼物50" "红包100" "礼金200"
+    {
+        regex: /^(礼物|红包|礼金|压岁钱|份子钱|人情)\s*(\d+(?:\.\d+)?)(?:\s*[元块钱]?)?$/,
         category: '人情往来',
         getResult: (match: RegExpMatchArray) => ({
             amount: parseFloat(match[2]),
@@ -166,15 +309,48 @@ export const expensePatterns: ExpensePattern[] = [
             confidence: 0.95
         })
     },
-    // 模式15: "维修费50" "保养100" "修理200"
+    // 模式28: "50礼物" "100红包" "200礼金"（反向模式）
     {
-        regex: /^(维修费|保养|修理|维修|维护|检修)\s*(\d+(?:\.\d+)?)\s*[元块钱]?$/,
+        regex: /^(\d+(?:\.\d+)?)(?:\s*[元块钱]?)\s*(礼物|红包|礼金|压岁钱|份子钱|人情)$/,
+        category: '人情往来',
+        getResult: (match: RegExpMatchArray) => ({
+            amount: parseFloat(match[1]),
+            description: match[2],
+            tags: [match[2], '人情往来'],
+            confidence: 0.95
+        })
+    },
+    // 模式29: "维修费50" "保养100" "修理200"
+    {
+        regex: /^(维修费|保养|修理|维修|维护|检修)\s*(\d+(?:\.\d+)?)(?:\s*[元块钱]?)?$/,
         category: '其他',
         getResult: (match: RegExpMatchArray) => ({
             amount: parseFloat(match[2]),
             description: match[1],
             tags: [match[1], '其他'],
             confidence: 0.95
+        })
+    },
+    // 模式30: "50维修费" "100保养" "200修理"（反向模式）
+    {
+        regex: /^(\d+(?:\.\d+)?)(?:\s*[元块钱]?)\s*(维修费|保养|修理|维修|维护|检修)$/,
+        category: '其他',
+        getResult: (match: RegExpMatchArray) => ({
+            amount: parseFloat(match[1]),
+            description: match[2],
+            tags: [match[2], '其他'],
+            confidence: 0.95
+        })
+    },
+    // 模式31: 带货币符号的金额（如"￥30"、"$5"）
+    {
+        regex: /^(?:￥|\$)?\s*(\d+(?:\.\d+)?)$/,
+        category: '其他',
+        getResult: (match: RegExpMatchArray) => ({
+            amount: parseFloat(match[1]),
+            description: '未分类支出',
+            tags: ['未分类', '支出'],
+            confidence: 0.8
         })
     }
 ];
