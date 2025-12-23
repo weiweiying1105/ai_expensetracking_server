@@ -142,7 +142,7 @@ export class ResponseUtil {
 }
 
 // 创建带有正确Content-Type和CORS头的NextResponse
-export function createJsonResponse(data: any, options?: ResponseInit) {
+export function createJsonResponse<T>(data: T, options?: ResponseInit) {
   return NextResponse.json(data, {
     ...options,
     headers: {

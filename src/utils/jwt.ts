@@ -83,10 +83,9 @@ export async function verifyToken(requestOrToken: NextRequest | string ): Promis
     // 只进行token验证，不额外查询数据库，减少性能开销
     return decoded
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Token验证失败:', error)
-    console.error('Error name:', error.name)
-    console.error('Error message:', error.message)
+
     return null
   }
 }
