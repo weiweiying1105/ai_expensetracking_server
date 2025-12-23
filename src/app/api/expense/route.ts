@@ -194,19 +194,41 @@ export async function POST(request: NextRequest) {
         })();
 
 
-        return categoryPromise.then((finalCategoryId) =>
-            prisma.expense.create({
+        return categoryPromise.then((finalCategoryId) => {
+            // 确保日期是有效的ISO-8601格式
+            let isoDate: string;
+            if (date) {
+                // 检查日期格式是否为YYYY-MM-DD
+                if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                    // 对于YYYY-MM-DD格式，添加时间部分转换为ISO格式
+                    isoDate = new Date(date + 'T00:00:00.000Z').toISOString();
+                } else {
+                    // 尝试直接转换其他格式
+                    const dateObj = new Date(date);
+                    if (!isNaN(dateObj.getTime())) {
+                        isoDate = dateObj.toISOString();
+                    } else {
+                        // 无效日期，使用当前时间
+                        isoDate = new Date().toISOString();
+                    }
+                }
+            } else {
+                // 没有提供日期，使用当前时间
+                isoDate = new Date().toISOString();
+            }
+            
+            return prisma.expense.create({
                 data: {
                     user: {
                         connect: { id: user.userId }
                     },
                     amount: parseFloat(((item.amount*100)/100).toFixed(2)),
                     description: item.description,
-                    date: date ? new Date(date).toISOString() : new Date().toISOString(),
+                    date: isoDate,
                     category: finalCategoryId ? { connect: { id: finalCategoryId } } : undefined,
                 }
-            })
-        );
+            });
+        });
     });
     try {
         const records = await Promise.all(ops);
