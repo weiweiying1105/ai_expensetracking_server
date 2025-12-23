@@ -280,7 +280,7 @@ export async function GET(request: NextRequest) {
         }
 
         if (startDate || endDate) {
-            where.date = {};
+            where.date = {} as { gte?: Date; lte?: Date };
             if (startDate) {
                 where.date.gte = new Date(startDate);
             }

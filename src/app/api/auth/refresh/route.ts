@@ -11,7 +11,7 @@ interface RefreshRequest {
 }
 export async function POST(request: NextRequest) {
     try {
-        const body: RefreshRequest = await request.json().catch(() => ({}))
+        const body: RefreshRequest = await request.json().catch(() => ({token: undefined}))
         // 支持从 Authorization: Bearer xxx 或 body.token 读取旧 token
         const tokenFromHeader = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '')
         const oldToken = body?.token || tokenFromHeader

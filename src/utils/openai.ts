@@ -1,5 +1,11 @@
 import { OpenAI } from "openai";
 
+// 定义分类类型接口
+interface Category {
+    id: string;
+    name: string;
+}
+
 // 配置OpenAI客户端
 const client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -7,10 +13,10 @@ const client = new OpenAI({
 });
 
 // AI分析支出信息（使用OpenAI）
-export async function analyzeExpenseWithAI(rawText: string, availableCategories: any[]) {
+export async function analyzeExpenseWithAI(rawText: string, availableCategories: Category[]) {
     try {
         // 仅传递精简的分类信息，减少token占用
-        const categoriesText = availableCategories.map((c: any) => `${c.id}: ${c.name}`).join('\n');
+        const categoriesText = availableCategories.map((c: Category) => `${c.id}: ${c.name}`).join('\n');
         const prompt = `
 请分析以下支出描述，提取金额、描述等信息，并推荐分类：
 
@@ -76,7 +82,7 @@ ${categoriesText}
             usage: response.usage,
             isQuickMatch: false
         };
-    } catch (error: any) {
+    } catch (error: Error) {
         console.error('OpenAI分析失败:', error);
         return {
             success: false,
