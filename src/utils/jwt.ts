@@ -46,12 +46,15 @@ export async function withAuth(handler: (request: AuthenticatedRequest) => Promi
 }
 
 // 验证JWT token
-export async function verifyToken(requestOrToken: NextRequest ): Promise<JWTPayload | null> {
+export async function verifyToken(requestOrToken: NextRequest | string ): Promise<JWTPayload | null> {
   try {
     let token: string | null = null
     
-    // 如果是NextRequest对象，从请求头获取token
-  
+    if (typeof requestOrToken === 'string') {
+      // 如果直接传入的是token字符串
+      token = requestOrToken
+    } else {
+      // 如果是NextRequest对象，从请求头获取token
       const authHeader = requestOrToken?.headers.get('authorization')
       console.log('Authorization header:', authHeader)
       if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -60,7 +63,7 @@ export async function verifyToken(requestOrToken: NextRequest ): Promise<JWTPayl
       } else {
         console.log('Invalid authorization header format')
       }
-   
+    }
     
     if (!token) {
       console.log('No token found')
