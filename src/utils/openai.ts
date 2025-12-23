@@ -82,11 +82,11 @@ ${categoriesText}
             usage: response.usage,
             isQuickMatch: false
         };
-    } catch (error: Error) {
+    } catch (error: unknown) {
         console.error('OpenAI分析失败:', error);
         return {
             success: false,
-            error: error.message,
+            error: error instanceof Error ? error.message : '未知错误',
             isQuickMatch: false
         };
     }
