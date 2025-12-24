@@ -6,12 +6,18 @@ import { OpenAI } from "openai";
 import prisma from "@/lib/prisma";
 import { TransactionType } from "@/generated/prisma";
 import { createExpenseCategory, getExpenseAllCategory } from "../categories";
+import { sanitizeEnv, logEnvStatus } from "@/utils/env";
 
 // 强制动态渲染，因为需要访问请求头
 export const dynamic = 'force-dynamic';
 
+// 读取并清洗 DeepSeek API Key，避免环境变量包含多余引号导致 401
+const rawDeepSeekKey = process.env.DEEPSEEK_API_KEY;
+logEnvStatus('DEEPSEEK_API_KEY', rawDeepSeekKey);
+const DEEPSEEK_API_KEY = sanitizeEnv(rawDeepSeekKey);
+
 const client = new OpenAI({
-    apiKey: process.env.DEEPSEEK_API_KEY,
+    apiKey: DEEPSEEK_API_KEY,
     baseURL: "https://api.deepseek.com",
 });
 // 缓存分类信息

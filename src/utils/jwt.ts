@@ -1,8 +1,13 @@
 import jwt, { Secret, SignOptions } from 'jsonwebtoken'
 import { NextRequest } from 'next/server'
 import { ResponseCode, ResponseMessage } from './response'
-const JWT_SECRET = (process.env.JWT_SECRET || 'your-jwt-secret-key') as Secret;
+import { sanitizeEnv, logEnvStatus } from './env'
 import { StringValue } from 'ms'
+
+const JWT_SECRET_RAW = process.env.JWT_SECRET || 'your-jwt-secret-key'
+logEnvStatus('JWT_SECRET', JWT_SECRET_RAW)
+const JWT_SECRET = (sanitizeEnv(JWT_SECRET_RAW) || 'your-jwt-secret-key') as Secret
+
 export interface JWTPayload {
   userId: string
   openId: string
@@ -44,7 +49,7 @@ export async function withAuth(handler: (request: AuthenticatedRequest) => Promi
 }
 
 // 验证JWT token
-export async function verifyToken(requestOrToken: NextRequest | string ): Promise<JWTPayload | null> {
+export async function verifyToken(requestOrToken: NextRequest | string): Promise<JWTPayload | null> {
   try {
     let token: string | null = null
 
@@ -73,9 +78,9 @@ export async function verifyToken(requestOrToken: NextRequest | string ): Promis
       return null
     }
 
-    console.log('JWT_SECRET used for verification:', JWT_SECRET)
-    console.log('JWT_SECRET length:', typeof JWT_SECRET === 'string' ? JWT_SECRET.length : 'N/A')
-    
+    // 避免打印完整密钥，仅打印长度信息
+    console.log('JWT_SECRET length:', typeof JWT_SECRET === 'string' ? (JWT_SECRET as string).length : 'N/A')
+
     // 验证token
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload
     console.log('Token verification successful, decoded:', decoded)
