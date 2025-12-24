@@ -38,7 +38,7 @@ async function analyzeExpenseWithAI(rawText: string, availableCategories: any[])
         const prompt = `
 请分析以下支出描述，提取金额、描述等信息，并推荐分类：
 
-原始文本："${rawText}"
+原始文本:"${rawText}"
 
 可选分类：
 ${categoriesText}
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     console.log('User ID:', user.userId);
     console.log('User ID Type:', typeof user.userId);
     const { rawText, date } = await request.json();
-    
+
     // 验证用户是否实际存在于数据库中
     console.log('Finding user with ID:', user.userId);
     const dbUser = await prisma.user.findUnique({ where: { id: user.userId } });
@@ -164,10 +164,10 @@ export async function POST(request: NextRequest) {
                 { status: 400 }
             );
         }
-        
+
         // 过滤掉amount为null的记录，因为amount是必填字段
         items = aiAnalysis.data.filter(item => item.amount !== null && item.amount !== undefined);
-        
+
         if (items.length === 0) {
             return createJsonResponse(
                 ResponseUtil.error('未能从文本中提取有效金额'),
@@ -216,15 +216,16 @@ export async function POST(request: NextRequest) {
                 // 没有提供日期，使用当前时间
                 isoDate = new Date().toISOString();
             }
-            
+
             return prisma.expense.create({
                 data: {
                     user: {
                         connect: { id: user.userId }
                     },
-                    amount: parseFloat(((item.amount*100)/100).toFixed(2)),
+                    amount: parseFloat(((item.amount * 100) / 100).toFixed(2)),
                     description: item.description,
                     date: isoDate,
+                    rawText: rawText || item.description || '',
                     category: finalCategoryId ? { connect: { id: finalCategoryId } } : undefined,
                 }
             });
@@ -233,13 +234,13 @@ export async function POST(request: NextRequest) {
     try {
         const records = await Promise.all(ops);
         return createJsonResponse(
-        ResponseUtil.success({
-            message: '支出/收入分类和记录创建成功',
-            // categories: categories,
-            records: records,
-        }),
-        { status: 200 }
-    );
+            ResponseUtil.success({
+                message: '支出/收入分类和记录创建成功',
+                // categories: categories,
+                records: records,
+            }),
+            { status: 200 }
+        );
     } catch (error) {
         console.error('批量创建支出/收入记录失败:', error);
         return createJsonResponse(
@@ -248,7 +249,7 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    
+
 }
 
 export async function GET(request: NextRequest) {
@@ -293,8 +294,20 @@ export async function GET(request: NextRequest) {
         const [expenses, total] = await Promise.all([
             prisma.expense.findMany({
                 where,
-                include: {
-                    category: true
+                select: {
+                    id: true,
+                    amount: true,
+                    description: true,
+                    date: true,
+                    categoryId: true,
+                    category: {
+                        select: {
+                            id: true,
+                            name: true,
+                            icon: true,
+                            color: true,
+                        }
+                    }
                 },
                 orderBy: {
                     date: 'desc'

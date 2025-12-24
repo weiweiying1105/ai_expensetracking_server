@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { ResponseUtil, createJsonResponse } from '@/utils/response'
 import { verifyToken } from '@/utils/jwt'
-import { Category, TransactionType } from '@/generated/prisma'
+import { TransactionType } from '@/generated/prisma'
 import prisma from '@/lib/prisma'
 
 // 强制动态渲染，因为需要访问请求头
@@ -19,13 +19,22 @@ export async function GET(request: NextRequest) {
             )
         }
 
-        // 获取所有分类
+        // 获取所有分类（仅选择现有列，避免选择不存在的 userId）
         const categories = await prisma.category.findMany({
             orderBy: [
                 { type: 'asc' }, // 先按类型排序（收入/支出）
                 { sortOrder: 'asc' }, // 再按排序字段
                 { name: 'asc' } // 最后按名称排序
-            ]
+            ],
+            select: {
+                id: true,
+                name: true,
+                icon: true,
+                color: true,
+                type: true,
+                sortOrder: true,
+                isDefault: true
+            }
         })
 
         // 按类型分组
@@ -83,7 +92,8 @@ export async function POST(request: NextRequest) {
             where: {
                 name: name,
                 type: type as TransactionType
-            }
+            },
+            select: { id: true }
         })
 
         if (existingCategory) {
@@ -93,7 +103,7 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // 创建新分类
+        // 创建新分类（仅返回现有列，避免选择不存在的 userId）
         const newCategory = await prisma.category.create({
             data: {
                 name,
@@ -102,6 +112,15 @@ export async function POST(request: NextRequest) {
                 type,
                 sortOrder: sortOrder || 0,
                 isDefault: false
+            },
+            select: {
+                id: true,
+                name: true,
+                icon: true,
+                color: true,
+                type: true,
+                sortOrder: true,
+                isDefault: true
             }
         })
 
