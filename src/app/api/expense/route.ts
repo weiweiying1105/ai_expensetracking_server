@@ -289,10 +289,20 @@ export async function GET(request: NextRequest) {
         if (startDate || endDate) {
             where.date = {} as { gte?: Date; lte?: Date };
             if (startDate) {
-                where.date.gte = new Date(startDate);
+                // 规范化为UTC开始时间，避免时区造成边界偏移
+                if (/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+                    where.date.gte = new Date(startDate + 'T00:00:00.000Z');
+                } else {
+                    where.date.gte = new Date(startDate);
+                }
             }
             if (endDate) {
-                where.date.lte = new Date(endDate);
+                // 规范化为UTC结束时间，包含整天
+                if (/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+                    where.date.lte = new Date(endDate + 'T23:59:59.999Z');
+                } else {
+                    where.date.lte = new Date(endDate);
+                }
             }
         }
 
