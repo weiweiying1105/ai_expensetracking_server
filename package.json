@@ -10,6 +10,7 @@
     "build": "next build",
     "postinstall": "prisma generate",
     "start": "node .next/standalone/server.js",
+    
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "npx prisma db push --force-reset && npm run db:seed\n"
   },
