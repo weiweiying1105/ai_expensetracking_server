@@ -1,6 +1,7 @@
 # 使用 Node.js 18 作为基础镜像
 FROM node:18-alpine AS base
-FROM node:18-alpine
+FROM node:20-bullseye
+
 
 WORKDIR /app
 

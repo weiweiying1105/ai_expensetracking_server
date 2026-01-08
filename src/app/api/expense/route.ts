@@ -16,10 +16,19 @@ const rawDeepSeekKey = process.env.DEEPSEEK_API_KEY;
 logEnvStatus('DEEPSEEK_API_KEY', rawDeepSeekKey);
 const DEEPSEEK_API_KEY = sanitizeEnv(rawDeepSeekKey);
 
-const client = new OpenAI({
-    apiKey: DEEPSEEK_API_KEY,
-    baseURL: "https://api.deepseek.com",
-});
+function getAIClient() {
+  const apiKey = process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("AI API KEY missing");
+  }
+
+  return new OpenAI({
+    apiKey,
+    baseURL: process.env.DEEPSEEK_API_KEY
+      ? "https://api.deepseek.com"
+      : undefined,
+  });
+}
 // 缓存分类信息
 const CATEGORY_CACHE_TTL_MS = 15_000;
 type CategoryCacheEntry = { value: any[]; expiresAt: number };
@@ -38,6 +47,7 @@ function setCacheCategory(type: 'EXPENSE' | 'INCOME', categories: any[]) {
 }
 // AI分析支出信息
 async function analyzeExpenseWithAI(rawText: string, availableCategories: any[]) {
+    const client = getAIClient();
     try {
         // 仅传递精简的分类信息，减少token占用
         const categoriesText = availableCategories.map((c: any) => `${c.id}: ${c.name}`).join('\n');
