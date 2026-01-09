@@ -20,7 +20,12 @@ RUN npx prisma generate
 # 构建 NestJS
 RUN npm run build
 
-EXPOSE 3000
+# 设置环境变量
+ENV NODE_ENV=production
+ENV PORT=8000
+
+# 暴露端口
+EXPOSE 8000
 
 CMD ["node", ".next/standalone/server.js"]
 
