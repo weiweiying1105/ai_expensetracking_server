@@ -22,6 +22,9 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const startDate = searchParams.get('startDate');
         const endDate = searchParams.get('endDate');
+        // 新增：允许通过查询参数绕过缓存，以便在创建记录后立即查询到最新数据
+        const bypassCacheParam = searchParams.get('bypassCache');
+        const bypassCache = bypassCacheParam === '1' || bypassCacheParam === 'true';
 
         // 验证必需参数
         if (!startDate || !endDate) {
@@ -53,11 +56,11 @@ export async function GET(request: NextRequest) {
         const startOfDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
         const endOfDay = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
 
-        // 命中缓存直接返回
+        // 命中缓存直接返回（允许通过 bypassCache 跳过缓存）
         const cacheKey = `${user.userId}:${startDate}:${endDate}`;
         const now = Date.now();
         const cached = rangeCache.get(cacheKey);
-        if (cached && cached.expiresAt > now) {
+        if (!bypassCache && cached && cached.expiresAt > now) {
             return createJsonResponse(
                 ResponseUtil.success(cached.data, '时间区间支出查询成功（缓存）')
             );
